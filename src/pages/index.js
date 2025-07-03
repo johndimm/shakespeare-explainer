@@ -24,9 +24,13 @@ export default function ShakespeareExplainer() {
     
     // Double tap detection (within 500ms)
     if (lastClickedIndex === index && timeDiff < 500) {
-      // Double tap - explain this line immediately
-      setSelectedLines([{ line, index }]);
-      setTimeout(() => explainSelectedText(), 100);
+      // Double tap - explain this line immediately and clear selection
+      setSelectedLines([]);  // Clear first to avoid showing buttons
+      setTimeout(() => {
+        setSelectedLines([{ line, index }]);
+        explainSelectedText();
+        setSelectedLines([]);  // Clear after submitting
+      }, 10);
       setLastClickTime(0);
       setLastClickedIndex(null);
     } else {
