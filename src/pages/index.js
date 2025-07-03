@@ -135,11 +135,9 @@ export default function ShakespeareExplainer() {
     const file = event.target.files[0];
     if (file) {
       console.log('File selected:', file);
-      alert(`File selected: ${file.name} (${file.type})`);
       processFile(file);
     } else {
       console.log('No file selected');
-      alert('No file was selected. Try the paste option below.');
     }
   };
 
@@ -284,7 +282,8 @@ export default function ShakespeareExplainer() {
       height: '100vh', 
       fontFamily: 'monospace', 
       fontSize: '14px',
-      minWidth: '1024px'
+      minWidth: '1024px',
+      overflow: 'hidden'
     }}>
       <div style={{ 
         width: `${leftPanelWidth}%`, 

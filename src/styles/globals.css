@@ -9,30 +9,25 @@
 
 /* Large mobile-friendly scrollbars */
 ::-webkit-scrollbar {
-  width: 40px !important;
-  height: 40px !important;
-  -webkit-appearance: none !important;
+  width: 20px;
+  height: 20px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #ddd !important;
-  border-radius: 0px !important;
-  -webkit-appearance: none !important;
+  background: #f0f0f0;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #666 !important;
-  border-radius: 0px !important;
-  min-height: 120px !important;
-  -webkit-appearance: none !important;
+  background: #999;
+  min-height: 80px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #333 !important;
+  background: #666;
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background: #000 !important;
+  background: #333;
 }
 
 @media (prefers-color-scheme: dark) {
