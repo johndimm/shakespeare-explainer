@@ -9,20 +9,22 @@
 
 /* Custom scrollbar styling for better mobile usability */
 ::-webkit-scrollbar {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #e0e0e0;
-  border-radius: 10px;
+  background: #f0f0f0;
+  border-radius: 15px;
+  margin: 10px 0;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #333;
-  border-radius: 10px;
-  min-height: 60px;
-  border: 1px solid #999;
+  border-radius: 15px;
+  min-height: 100px;
+  border: 3px solid #f0f0f0;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -36,7 +38,12 @@
 /* For Firefox */
 * {
   scrollbar-width: thick;
-  scrollbar-color: #666 #e0e0e0;
+  scrollbar-color: #333 #f0f0f0;
+}
+
+/* Add padding to left panel to avoid scrollbar overlap with separator */
+.left-panel {
+  padding-right: 40px !important;
 }
 
 @media (prefers-color-scheme: dark) {
