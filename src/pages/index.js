@@ -16,20 +16,26 @@ export default function ShakespeareExplainer() {
   const [scrollPosition, setScrollPosition] = useState(0);
 
   // Handle scrollbar interaction (scroll or resize)
-  const handleScrollbarMouseDown = (e) => {
+  const handleScrollbarStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const startX = e.clientX;
-    const startY = e.clientY;
+    const getClientX = (e) => e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX);
+    const getClientY = (e) => e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY);
+    
+    const startX = getClientX(e);
+    const startY = getClientY(e);
     const scrollbarElement = e.currentTarget;
     const startScrollbarRect = scrollbarElement.getBoundingClientRect();
     let isDragging = false;
     let dragThreshold = 5; // pixels to move before considering it a drag
     
-    const handleMouseMove = (e) => {
-      const deltaX = Math.abs(e.clientX - startX);
-      const deltaY = Math.abs(e.clientY - startY);
+    const handleMove = (e) => {
+      e.preventDefault();
+      const currentX = getClientX(e);
+      const currentY = getClientY(e);
+      const deltaX = Math.abs(currentX - startX);
+      const deltaY = Math.abs(currentY - startY);
       
       if (!isDragging && (deltaX > dragThreshold || deltaY > dragThreshold)) {
         // Determine if this is horizontal (resize) or vertical (scroll) drag
@@ -43,14 +49,14 @@ export default function ShakespeareExplainer() {
       if (isDragging === 'resize') {
         // Handle panel resizing
         const containerWidth = window.innerWidth;
-        const newLeftWidth = (e.clientX / containerWidth) * 100;
+        const newLeftWidth = (currentX / containerWidth) * 100;
         const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
         setLeftPanelWidth(constrainedWidth);
       } else if (isDragging === 'scroll') {
         // Handle scrolling
         const scrollContainer = document.querySelector('.left-panel');
         const scrollbarRect = scrollbarElement.getBoundingClientRect();
-        const clickY = e.clientY - scrollbarRect.top;
+        const clickY = currentY - scrollbarRect.top;
         const scrollbarHeight = scrollbarRect.height;
         const scrollHeight = scrollContainer.scrollHeight;
         const viewHeight = scrollContainer.clientHeight;
@@ -64,7 +70,7 @@ export default function ShakespeareExplainer() {
       }
     };
     
-    const handleMouseUp = (e) => {
+    const handleEnd = (e) => {
       if (!isDragging) {
         // This was a simple click, handle as scroll positioning
         const scrollContainer = document.querySelector('.left-panel');
@@ -81,14 +87,18 @@ export default function ShakespeareExplainer() {
         setScrollPosition(scrollRatio);
       }
       
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
     
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   };
@@ -113,52 +123,6 @@ export default function ShakespeareExplainer() {
     setIsMobile(checkMobile);
   }, []);
 
-  // Handle resizer drag (mouse and touch)
-  useEffect(() => {
-    const getClientX = (e) => {
-      return e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX);
-    };
-
-    const handleMove = (e) => {
-      if (isResizing) {
-        e.preventDefault();
-        const clientX = getClientX(e);
-        if (clientX) {
-          const containerWidth = window.innerWidth;
-          const newLeftWidth = (clientX / containerWidth) * 100;
-          // Constrain between 20% and 80%
-          const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
-          setLeftPanelWidth(constrainedWidth);
-        }
-      }
-    };
-
-    const handleEnd = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      // Mouse events
-      document.addEventListener('mousemove', handleMove);
-      document.addEventListener('mouseup', handleEnd);
-      // Touch events
-      document.addEventListener('touchmove', handleMove, { passive: false });
-      document.addEventListener('touchend', handleEnd);
-      
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    } else {
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchmove', handleMove);
-      document.removeEventListener('touchend', handleEnd);
-    };
-  }, [isResizing]);
 
   const handleMobileLineClick = (line, index) => {
     const currentTime = Date.now();
@@ -391,7 +355,8 @@ export default function ShakespeareExplainer() {
       >
         {/* Custom scrollbar overlay */}
         <div 
-          onMouseDown={handleScrollbarMouseDown}
+          onMouseDown={handleScrollbarStart}
+          onTouchStart={handleScrollbarStart}
           style={{
             position: 'fixed',
             right: `${100 - leftPanelWidth}%`,
