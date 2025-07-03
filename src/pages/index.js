@@ -38,9 +38,11 @@ export default function ShakespeareExplainer() {
     const file = event.target.files[0];
     if (file) {
       console.log('File selected:', file);
+      alert(`File selected: ${file.name} (${file.type})`);
       processFile(file);
     } else {
       console.log('No file selected');
+      alert('No file was selected. Try the paste option below.');
     }
   };
 
@@ -185,7 +187,9 @@ export default function ShakespeareExplainer() {
         width: '50%', 
         borderRight: '1px solid #ccc', 
         padding: '16px',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        backgroundColor: 'white',
+        color: 'black'
       }}>
         <div style={{ marginBottom: '16px' }}>
           <input
@@ -202,10 +206,10 @@ export default function ShakespeareExplainer() {
             }}
           />
           
-          <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-            <details>
-              <summary style={{ cursor: 'pointer', color: '#3b82f6' }}>
-                Or paste text directly
+          <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
+            <details open>
+              <summary style={{ cursor: 'pointer', color: '#3b82f6', fontWeight: 'bold' }}>
+                Mobile users: Paste text here (recommended)
               </summary>
               <textarea
                 placeholder="Paste Shakespeare text here..."
@@ -276,7 +280,7 @@ export default function ShakespeareExplainer() {
                 style={{
                   cursor: 'pointer',
                   padding: '4px',
-                  backgroundColor: isSelected ? '#3b82f6' : 'transparent',
+                  backgroundColor: isSelected ? '#3b82f6' : 'white',
                   color: isSelected ? 'white' : 'black',
                   borderRadius: '2px',
                   userSelect: 'none'
@@ -285,7 +289,10 @@ export default function ShakespeareExplainer() {
                   if (!isSelected && !isDragging) e.target.style.backgroundColor = '#fde68a';
                 }}
                 onMouseOut={(e) => {
-                  if (!isSelected) e.target.style.backgroundColor = 'transparent';
+                  if (!isSelected) {
+                    e.target.style.backgroundColor = 'white';
+                    e.target.style.color = 'black';
+                  }
                 }}
               >
                 {line}
@@ -298,7 +305,9 @@ export default function ShakespeareExplainer() {
         width: '50%', 
         padding: '16px',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        backgroundColor: 'white',
+        color: 'black'
       }}>
         <h2 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Shakespeare Chat</h2>
         
