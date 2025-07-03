@@ -446,15 +446,27 @@ export default function ShakespeareExplainer() {
       {/* Resizable separator */}
       <div 
         style={{
-          width: '4px',
+          width: isMobile ? '12px' : '4px',
           backgroundColor: '#ccc',
           cursor: 'col-resize',
           borderLeft: '1px solid #999',
           borderRight: '1px solid #999',
-          touchAction: 'none'
+          touchAction: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
         onMouseDown={() => setIsResizing(true)}
         onTouchStart={() => setIsResizing(true)}
+      >
+        {isMobile && (
+          <div style={{
+            width: '2px',
+            height: '20px',
+            backgroundColor: '#666',
+            borderRadius: '1px'
+          }} />
+        )}
       />
       
       <div style={{ 
