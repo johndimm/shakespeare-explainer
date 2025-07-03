@@ -279,7 +279,13 @@ export default function ShakespeareExplainer() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'monospace', fontSize: '14px' }}>
+    <div style={{ 
+      display: 'flex', 
+      height: '100vh', 
+      fontFamily: 'monospace', 
+      fontSize: '14px',
+      minWidth: '1024px'
+    }}>
       <div style={{ 
         width: `${leftPanelWidth}%`, 
         padding: '16px',
