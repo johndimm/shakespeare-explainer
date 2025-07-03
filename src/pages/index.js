@@ -11,12 +11,46 @@ export default function ShakespeareExplainer() {
   const [isMobile, setIsMobile] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
   const [lastClickedIndex, setLastClickedIndex] = useState(null);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
+  const [isResizing, setIsResizing] = useState(false);
 
   // Detect mobile device
   useEffect(() => {
     const checkMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     setIsMobile(checkMobile);
   }, []);
+
+  // Handle resizer drag
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isResizing) {
+        const containerWidth = window.innerWidth;
+        const newLeftWidth = (e.clientX / containerWidth) * 100;
+        // Constrain between 20% and 80%
+        const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
+        setLeftPanelWidth(constrainedWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   const handleMobileLineClick = (line, index) => {
     const currentTime = Date.now();
@@ -230,8 +264,7 @@ export default function ShakespeareExplainer() {
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'monospace', fontSize: '14px' }}>
       <div style={{ 
-        width: '50%', 
-        borderRight: '1px solid #ccc', 
+        width: `${leftPanelWidth}%`, 
         padding: '16px',
         overflowY: 'auto',
         backgroundColor: 'white',
@@ -392,8 +425,21 @@ export default function ShakespeareExplainer() {
           })}
         </div>
       </div>
+      
+      {/* Resizable separator */}
+      <div 
+        style={{
+          width: '4px',
+          backgroundColor: '#ccc',
+          cursor: 'col-resize',
+          borderLeft: '1px solid #999',
+          borderRight: '1px solid #999'
+        }}
+        onMouseDown={() => setIsResizing(true)}
+      />
+      
       <div style={{ 
-        width: '50%', 
+        width: `${100 - leftPanelWidth}%`, 
         padding: '16px',
         display: 'flex',
         flexDirection: 'column',
