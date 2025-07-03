@@ -274,7 +274,9 @@ export default function ShakespeareExplainer() {
                   padding: '8px',
                   border: '1px solid #ccc',
                   borderRadius: '4px',
-                  fontSize: '12px'
+                  fontSize: '12px',
+                  backgroundColor: '#fefdf0',
+                  color: 'black'
                 }}
               />
             </details>
