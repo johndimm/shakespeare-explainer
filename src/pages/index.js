@@ -295,57 +295,63 @@ export default function ShakespeareExplainer() {
         <div onMouseUp={!isMobile ? handleMouseUp : undefined} onMouseLeave={!isMobile ? handleMouseUp : undefined}>
           {uploadedText.map((line, idx) => {
             const isSelected = selectedLines.some(item => item.index === idx);
+            const isLastSelected = isMobile && selectedLines.length > 0 && 
+              idx === Math.max(...selectedLines.map(item => item.index));
+            
             return (
-              <p
-                key={idx}
-                onMouseDown={!isMobile ? () => handleMouseDown(line, idx) : undefined}
-                onMouseEnter={!isMobile ? () => handleMouseEnter(line, idx) : undefined}
-                onMouseMove={!isMobile ? () => handleMouseMove(line, idx) : undefined}
-                onClick={isMobile ? () => toggleLineSelection(line, idx) : () => {
-                  setSelectedLines([{ line, index: idx }]);
-                  setTimeout(() => explainSelectedText(), 100);
-                }}
-                style={{
-                  cursor: 'pointer',
-                  padding: '4px',
-                  backgroundColor: isSelected ? '#3b82f6' : 'white',
-                  color: isSelected ? 'white' : 'black',
-                  borderRadius: '2px',
-                  userSelect: 'none'
-                }}
-                onMouseOver={!isMobile ? (e) => {
-                  if (!isSelected && !isDragging) e.target.style.backgroundColor = '#fde68a';
-                } : undefined}
-                onMouseOut={!isMobile ? (e) => {
-                  if (!isSelected) {
-                    e.target.style.backgroundColor = 'white';
-                    e.target.style.color = 'black';
-                  }
-                } : undefined}
-              >
-                {line}
-              </p>
+              <div key={idx}>
+                <p
+                  onMouseDown={!isMobile ? () => handleMouseDown(line, idx) : undefined}
+                  onMouseEnter={!isMobile ? () => handleMouseEnter(line, idx) : undefined}
+                  onMouseMove={!isMobile ? () => handleMouseMove(line, idx) : undefined}
+                  onClick={isMobile ? () => toggleLineSelection(line, idx) : () => {
+                    setSelectedLines([{ line, index: idx }]);
+                    setTimeout(() => explainSelectedText(), 100);
+                  }}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '4px',
+                    backgroundColor: isSelected ? '#3b82f6' : 'white',
+                    color: isSelected ? 'white' : 'black',
+                    borderRadius: '2px',
+                    userSelect: 'none'
+                  }}
+                  onMouseOver={!isMobile ? (e) => {
+                    if (!isSelected && !isDragging) e.target.style.backgroundColor = '#fde68a';
+                  } : undefined}
+                  onMouseOut={!isMobile ? (e) => {
+                    if (!isSelected) {
+                      e.target.style.backgroundColor = 'white';
+                      e.target.style.color = 'black';
+                    }
+                  } : undefined}
+                >
+                  {line}
+                </p>
+                
+                {isLastSelected && (
+                  <button
+                    onClick={explainMultipleLines}
+                    style={{
+                      marginTop: '8px',
+                      marginBottom: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Explain Selected Lines ({selectedLines.length})
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
-        
-        {isMobile && selectedLines.length > 0 && (
-          <button
-            onClick={explainMultipleLines}
-            style={{
-              marginTop: '16px',
-              padding: '12px 16px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
-          >
-            Explain Selected Lines ({selectedLines.length})
-          </button>
-        )}
       </div>
       <div style={{ 
         width: '50%', 
