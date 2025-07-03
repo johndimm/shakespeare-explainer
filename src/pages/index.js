@@ -289,6 +289,7 @@ export default function ShakespeareExplainer() {
       <div style={{ 
         width: `${leftPanelWidth}%`, 
         padding: '16px',
+        paddingRight: '50px',
         overflowY: 'auto',
         backgroundColor: 'white',
         color: 'black'

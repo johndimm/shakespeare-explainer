@@ -7,43 +7,30 @@
   --foreground: #171717;
 }
 
-/* Custom scrollbar styling for better mobile usability */
+/* Large mobile-friendly scrollbars */
 ::-webkit-scrollbar {
-  width: 30px;
-  height: 30px;
+  width: 40px !important;
+  height: 40px !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 15px;
-  margin: 10px 0;
+  background: #ddd !important;
+  border-radius: 20px !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 15px;
-  min-height: 100px;
-  border: 3px solid #f0f0f0;
-  background-clip: padding-box;
+  background: #666 !important;
+  border-radius: 20px !important;
+  min-height: 120px !important;
+  border: 5px solid #ddd !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #000;
+  background: #333 !important;
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background: #222;
-}
-
-/* For Firefox */
-* {
-  scrollbar-width: thick;
-  scrollbar-color: #333 #f0f0f0;
-}
-
-/* Add padding to left panel to avoid scrollbar overlap with separator */
-.left-panel {
-  padding-right: 40px !important;
+  background: #000 !important;
 }
 
 @media (prefers-color-scheme: dark) {
