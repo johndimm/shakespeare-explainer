@@ -9,6 +9,8 @@ export default function ShakespeareExplainer() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const [lastClickedIndex, setLastClickedIndex] = useState(null);
 
   // Detect mobile device
   useEffect(() => {
@@ -16,15 +18,30 @@ export default function ShakespeareExplainer() {
     setIsMobile(checkMobile);
   }, []);
 
-  const toggleLineSelection = (line, index) => {
-    setSelectedLines(prev => {
-      const isSelected = prev.some(item => item.index === index);
-      if (isSelected) {
-        return prev.filter(item => item.index !== index);
-      } else {
-        return [...prev, { line, index }].sort((a, b) => a.index - b.index);
-      }
-    });
+  const handleMobileLineClick = (line, index) => {
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastClickTime;
+    
+    // Double tap detection (within 500ms)
+    if (lastClickedIndex === index && timeDiff < 500) {
+      // Double tap - explain this line immediately
+      setSelectedLines([{ line, index }]);
+      setTimeout(() => explainSelectedText(), 100);
+      setLastClickTime(0);
+      setLastClickedIndex(null);
+    } else {
+      // Single tap - toggle selection
+      setSelectedLines(prev => {
+        const isSelected = prev.some(item => item.index === index);
+        if (isSelected) {
+          return prev.filter(item => item.index !== index);
+        } else {
+          return [...prev, { line, index }].sort((a, b) => a.index - b.index);
+        }
+      });
+      setLastClickTime(currentTime);
+      setLastClickedIndex(index);
+    }
   };
 
   const explainMultipleLines = () => {
@@ -304,7 +321,7 @@ export default function ShakespeareExplainer() {
                   onMouseDown={!isMobile ? () => handleMouseDown(line, idx) : undefined}
                   onMouseEnter={!isMobile ? () => handleMouseEnter(line, idx) : undefined}
                   onMouseMove={!isMobile ? () => handleMouseMove(line, idx) : undefined}
-                  onClick={isMobile ? () => toggleLineSelection(line, idx) : () => {
+                  onClick={isMobile ? () => handleMobileLineClick(line, idx) : () => {
                     setSelectedLines([{ line, index: idx }]);
                     setTimeout(() => explainSelectedText(), 100);
                   }}
@@ -336,7 +353,7 @@ export default function ShakespeareExplainer() {
                       marginTop: '8px',
                       marginBottom: '8px',
                       padding: '8px 12px',
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: '#16a34a',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
