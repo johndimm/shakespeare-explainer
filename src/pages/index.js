@@ -8,50 +8,42 @@ export default function ShakespeareExplainer() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(null);
-  const [isDragOver, setIsDragOver] = useState(false);
 
   const processFile = (file) => {
-    if (file && file.type === 'text/plain') {
+    if (file) {
+      // Try to read any file that looks like text
+      console.log('File type:', file.type, 'File name:', file.name);
       const reader = new FileReader();
       reader.onload = (e) => {
-        const text = e.target.result;
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        setUploadedText(lines);
-        setChatMessages([{ role: 'system', content: 'File uploaded! Click or drag to select lines for explanation.' }]);
+        try {
+          const text = e.target.result;
+          const lines = text.split('\n').filter(line => line.trim() !== '');
+          setUploadedText(lines);
+          setChatMessages([{ role: 'system', content: 'File uploaded! Click or drag to select lines for explanation.' }]);
+        } catch (err) {
+          console.error('Error reading file:', err);
+          alert('Error reading file. Please try the paste option instead.');
+        }
+      };
+      reader.onerror = () => {
+        alert('Error reading file. Please try the paste option instead.');
       };
       reader.readAsText(file);
-    } else {
-      alert('Please upload a .txt file');
     }
   };
 
   const handleFileUpload = (event) => {
+    console.log('File upload triggered');
+    console.log('Files:', event.target.files);
     const file = event.target.files[0];
-    processFile(file);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      processFile(files[0]);
+    if (file) {
+      console.log('File selected:', file);
+      processFile(file);
+    } else {
+      console.log('No file selected');
     }
   };
+
 
   const handleMouseDown = (line, index) => {
     setIsDragging(false); // Reset first
@@ -126,7 +118,6 @@ export default function ShakespeareExplainer() {
       
       // Add assistant response to chat
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-      setTimeout(() => scrollToOptimalPosition(), 500);
     } catch (err) {
       console.error('Error:', err);
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Failed to get explanation.' }]);
@@ -168,7 +159,6 @@ export default function ShakespeareExplainer() {
       
       // Add assistant response to chat
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-      setTimeout(() => scrollToOptimalPosition(), 500);
     } catch (err) {
       console.error('Error:', err);
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error.' }]);
@@ -197,36 +187,47 @@ export default function ShakespeareExplainer() {
         padding: '16px',
         overflowY: 'auto'
       }}>
-        <div 
-          style={{ marginBottom: '16px' }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <div style={{
-            border: isDragOver ? '2px dashed #3b82f6' : '2px dashed #ccc',
-            borderRadius: '8px',
-            padding: '16px',
-            backgroundColor: isDragOver ? '#f0f9ff' : '#f9f9f9',
-            textAlign: 'center',
-            marginBottom: '8px'
-          }}>
-            <input
-              type="file"
-              accept=".txt"
-              onChange={handleFileUpload}
-              style={{ 
-                display: 'block',
-                width: '100%',
-                marginBottom: '8px',
-                padding: '8px',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
-            />
-            <div style={{ fontSize: '14px', color: '#666' }}>
-              Or drag and drop a .txt file here
-            </div>
+        <div style={{ marginBottom: '16px' }}>
+          <input
+            type="file"
+            accept="*"
+            onChange={handleFileUpload}
+            style={{ 
+              display: 'block',
+              width: '100%',
+              marginBottom: '8px',
+              padding: '8px',
+              border: '1px solid #ccc',
+              borderRadius: '4px'
+            }}
+          />
+          
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+            <details>
+              <summary style={{ cursor: 'pointer', color: '#3b82f6' }}>
+                Or paste text directly
+              </summary>
+              <textarea
+                placeholder="Paste Shakespeare text here..."
+                onChange={(e) => {
+                  const text = e.target.value;
+                  if (text.trim()) {
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    setUploadedText(lines);
+                    setChatMessages([{ role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  height: '100px',
+                  marginTop: '8px',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '12px'
+                }}
+              />
+            </details>
           </div>
           <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
             Sample texts: 
