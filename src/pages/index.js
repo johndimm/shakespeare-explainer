@@ -47,6 +47,7 @@ export default function ShakespeareExplainer() {
   const explainMultipleLines = () => {
     if (selectedLines.length > 0) {
       explainSelectedText();
+      setSelectedLines([]); // Clear selection after submitting
     }
   };
 
@@ -347,23 +348,38 @@ export default function ShakespeareExplainer() {
                 </p>
                 
                 {isLastSelected && (
-                  <button
-                    onClick={explainMultipleLines}
-                    style={{
-                      marginTop: '8px',
-                      marginBottom: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: '#16a34a',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    Explain Selected Lines ({selectedLines.length})
-                  </button>
+                  <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={explainMultipleLines}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#16a34a',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Explain Selected Lines ({selectedLines.length})
+                    </button>
+                    <button
+                      onClick={() => setSelectedLines([])}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#dc2626',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
                 )}
               </div>
             );
