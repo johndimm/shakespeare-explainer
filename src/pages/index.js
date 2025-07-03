@@ -473,7 +473,7 @@ export default function ShakespeareExplainer() {
             borderRadius: '1px'
           }} />
         )}
-      />
+      </div>
       
       <div style={{ 
         width: `${100 - leftPanelWidth}%`, 
