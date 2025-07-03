@@ -8,6 +8,30 @@ export default function ShakespeareExplainer() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobile(checkMobile);
+  }, []);
+
+  const toggleLineSelection = (line, index) => {
+    setSelectedLines(prev => {
+      const isSelected = prev.some(item => item.index === index);
+      if (isSelected) {
+        return prev.filter(item => item.index !== index);
+      } else {
+        return [...prev, { line, index }].sort((a, b) => a.index - b.index);
+      }
+    });
+  };
+
+  const explainMultipleLines = () => {
+    if (selectedLines.length > 0) {
+      explainSelectedText();
+    }
+  };
 
   const processFile = (file) => {
     if (file) {
@@ -268,15 +292,19 @@ export default function ShakespeareExplainer() {
             </div>
           </div>
         </div>
-        <div onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+        <div onMouseUp={!isMobile ? handleMouseUp : undefined} onMouseLeave={!isMobile ? handleMouseUp : undefined}>
           {uploadedText.map((line, idx) => {
             const isSelected = selectedLines.some(item => item.index === idx);
             return (
               <p
                 key={idx}
-                onMouseDown={() => handleMouseDown(line, idx)}
-                onMouseEnter={() => handleMouseEnter(line, idx)}
-                onMouseMove={() => handleMouseMove(line, idx)}
+                onMouseDown={!isMobile ? () => handleMouseDown(line, idx) : undefined}
+                onMouseEnter={!isMobile ? () => handleMouseEnter(line, idx) : undefined}
+                onMouseMove={!isMobile ? () => handleMouseMove(line, idx) : undefined}
+                onClick={isMobile ? () => toggleLineSelection(line, idx) : () => {
+                  setSelectedLines([{ line, index: idx }]);
+                  setTimeout(() => explainSelectedText(), 100);
+                }}
                 style={{
                   cursor: 'pointer',
                   padding: '4px',
@@ -285,21 +313,39 @@ export default function ShakespeareExplainer() {
                   borderRadius: '2px',
                   userSelect: 'none'
                 }}
-                onMouseOver={(e) => {
+                onMouseOver={!isMobile ? (e) => {
                   if (!isSelected && !isDragging) e.target.style.backgroundColor = '#fde68a';
-                }}
-                onMouseOut={(e) => {
+                } : undefined}
+                onMouseOut={!isMobile ? (e) => {
                   if (!isSelected) {
                     e.target.style.backgroundColor = 'white';
                     e.target.style.color = 'black';
                   }
-                }}
+                } : undefined}
               >
                 {line}
               </p>
             );
           })}
         </div>
+        
+        {isMobile && selectedLines.length > 0 && (
+          <button
+            onClick={explainMultipleLines}
+            style={{
+              marginTop: '16px',
+              padding: '12px 16px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            Explain Selected Lines ({selectedLines.length})
+          </button>
+        )}
       </div>
       <div style={{ 
         width: '50%', 
