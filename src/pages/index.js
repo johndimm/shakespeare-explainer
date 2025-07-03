@@ -20,35 +20,52 @@ export default function ShakespeareExplainer() {
     setIsMobile(checkMobile);
   }, []);
 
-  // Handle resizer drag
+  // Handle resizer drag (mouse and touch)
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const getClientX = (e) => {
+      return e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX);
+    };
+
+    const handleMove = (e) => {
       if (isResizing) {
-        const containerWidth = window.innerWidth;
-        const newLeftWidth = (e.clientX / containerWidth) * 100;
-        // Constrain between 20% and 80%
-        const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
-        setLeftPanelWidth(constrainedWidth);
+        e.preventDefault();
+        const clientX = getClientX(e);
+        if (clientX) {
+          const containerWidth = window.innerWidth;
+          const newLeftWidth = (clientX / containerWidth) * 100;
+          // Constrain between 20% and 80%
+          const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
+          setLeftPanelWidth(constrainedWidth);
+        }
       }
     };
 
-    const handleMouseUp = () => {
+    const handleEnd = () => {
       setIsResizing(false);
     };
 
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      // Mouse events
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', handleEnd);
+      // Touch events
+      document.addEventListener('touchmove', handleMove, { passive: false });
+      document.addEventListener('touchend', handleEnd);
+      
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
+      document.body.style.touchAction = 'none';
     } else {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      document.body.style.touchAction = '';
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
     };
   }, [isResizing]);
 
@@ -433,9 +450,11 @@ export default function ShakespeareExplainer() {
           backgroundColor: '#ccc',
           cursor: 'col-resize',
           borderLeft: '1px solid #999',
-          borderRight: '1px solid #999'
+          borderRight: '1px solid #999',
+          touchAction: 'none'
         }}
         onMouseDown={() => setIsResizing(true)}
+        onTouchStart={() => setIsResizing(true)}
       />
       
       <div style={{ 
