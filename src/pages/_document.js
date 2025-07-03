@@ -4,7 +4,7 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <meta name="viewport" content="width=1024, initial-scale=1.0, user-scalable=yes, minimum-scale=0.3, maximum-scale=3.0" />
+        <meta name="viewport" content="width=1024, initial-scale=1.0, user-scalable=yes, minimum-scale=0.2, maximum-scale=3.0" />
       </Head>
       <body>
         <Main />
