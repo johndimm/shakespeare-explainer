@@ -22,15 +22,19 @@
   background: #666 !important;
   border-radius: 20px !important;
   min-height: 120px !important;
-  border: 5px solid #ddd !important;
+  border: 0px solid transparent !important;
+  cursor: grab !important;
+  -webkit-appearance: none !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #333 !important;
+  cursor: grab !important;
 }
 
 ::-webkit-scrollbar-thumb:active {
   background: #000 !important;
+  cursor: grabbing !important;
 }
 
 @media (prefers-color-scheme: dark) {
