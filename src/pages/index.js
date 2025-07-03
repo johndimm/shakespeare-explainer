@@ -14,6 +14,7 @@ export default function ShakespeareExplainer() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
   const [isResizing, setIsResizing] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [showButtons, setShowButtons] = useState(false);
 
   // Handle scrollbar interaction (scroll or resize)
   const handleScrollbarStart = (e) => {
@@ -132,6 +133,7 @@ export default function ShakespeareExplainer() {
     if (lastClickedIndex === index && timeDiff < 500) {
       // Double tap - explain this line immediately and clear selection
       setSelectedLines([]);  // Clear first to avoid showing buttons
+      setShowButtons(false);
       setTimeout(() => {
         setSelectedLines([{ line, index }]);
         explainSelectedText();
@@ -140,14 +142,16 @@ export default function ShakespeareExplainer() {
       setLastClickTime(0);
       setLastClickedIndex(null);
     } else {
-      // Single tap - toggle selection
+      // Single tap - toggle selection and show buttons
       setSelectedLines(prev => {
         const isSelected = prev.some(item => item.index === index);
-        if (isSelected) {
-          return prev.filter(item => item.index !== index);
-        } else {
-          return [...prev, { line, index }].sort((a, b) => a.index - b.index);
-        }
+        const newSelection = isSelected 
+          ? prev.filter(item => item.index !== index)
+          : [...prev, { line, index }].sort((a, b) => a.index - b.index);
+        
+        // Show buttons if we have selections
+        setShowButtons(newSelection.length > 0);
+        return newSelection;
       });
       setLastClickTime(currentTime);
       setLastClickedIndex(index);
@@ -158,6 +162,7 @@ export default function ShakespeareExplainer() {
     if (selectedLines.length > 0) {
       explainSelectedText();
       setSelectedLines([]); // Clear selection after submitting
+      setShowButtons(false); // Hide buttons after submitting
     }
   };
 
@@ -201,6 +206,7 @@ export default function ShakespeareExplainer() {
     setIsDragging(false); // Reset first
     setDragStart(index);
     setSelectedLines([{ line, index }]);
+    setShowButtons(false); // Hide buttons during interaction
   };
 
   const handleMouseEnter = (line, index) => {
@@ -225,15 +231,17 @@ export default function ShakespeareExplainer() {
 
   const handleMouseUp = () => {
     if (isDragging) {
-      // Was dragging - submit the selection
+      // Was dragging - submit selection
       setIsDragging(false);
       setDragStart(null);
-      setTimeout(() => explainSelectedText(), 100);
+      explainSelectedText();
+      setTimeout(() => setSelectedLines([]), 100);
     } else if (dragStart !== null) {
       // Was a click - submit single line
       setIsDragging(false);
       setDragStart(null);
-      setTimeout(() => explainSelectedText(), 100);
+      explainSelectedText();
+      setTimeout(() => setSelectedLines([]), 100);
     }
   };
 
@@ -465,11 +473,11 @@ export default function ShakespeareExplainer() {
         <div 
           onMouseUp={!isMobile ? handleMouseUp : undefined} 
           onMouseLeave={!isMobile ? handleMouseUp : undefined}
-          style={{ touchAction: 'auto' }}
+          style={{ touchAction: 'manipulation' }}
         >
           {uploadedText.map((line, idx) => {
             const isSelected = selectedLines.some(item => item.index === idx);
-            const isLastSelected = isMobile && selectedLines.length > 0 && 
+            const isLastSelected = selectedLines.length > 0 && showButtons &&
               idx === Math.max(...selectedLines.map(item => item.index));
             
             return (
@@ -478,10 +486,11 @@ export default function ShakespeareExplainer() {
                   onMouseDown={!isMobile ? () => handleMouseDown(line, idx) : undefined}
                   onMouseEnter={!isMobile ? () => handleMouseEnter(line, idx) : undefined}
                   onMouseMove={!isMobile ? () => handleMouseMove(line, idx) : undefined}
-                  onClick={isMobile ? () => handleMobileLineClick(line, idx) : () => {
-                    setSelectedLines([{ line, index: idx }]);
-                    setTimeout(() => explainSelectedText(), 100);
-                  }}
+                  onClick={isMobile ? (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleMobileLineClick(line, idx);
+                  } : undefined}
                   style={{
                     cursor: 'pointer',
                     padding: '4px',
@@ -521,7 +530,10 @@ export default function ShakespeareExplainer() {
                       Explain Selected Lines ({selectedLines.length})
                     </button>
                     <button
-                      onClick={() => setSelectedLines([])}
+                      onClick={() => {
+                        setSelectedLines([]);
+                        setShowButtons(false);
+                      }}
                       style={{
                         padding: '8px 12px',
                         backgroundColor: '#dc2626',
