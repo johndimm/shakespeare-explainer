@@ -15,25 +15,82 @@ export default function ShakespeareExplainer() {
   const [isResizing, setIsResizing] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  // Handle scrollbar click to jump to position
-  const handleScrollbarClick = (e) => {
+  // Handle scrollbar interaction (scroll or resize)
+  const handleScrollbarMouseDown = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const scrollContainer = document.querySelector('.left-panel');
-    const scrollbarRect = e.currentTarget.getBoundingClientRect();
-    const clickY = e.clientY - scrollbarRect.top;
-    const scrollbarHeight = scrollbarRect.height;
-    const scrollHeight = scrollContainer.scrollHeight;
-    const viewHeight = scrollContainer.clientHeight;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const scrollbarElement = e.currentTarget;
+    const startScrollbarRect = scrollbarElement.getBoundingClientRect();
+    let isDragging = false;
+    let dragThreshold = 5; // pixels to move before considering it a drag
     
-    // Calculate target scroll position based on click position
-    const scrollRatio = clickY / scrollbarHeight;
-    const maxScrollTop = scrollHeight - viewHeight;
-    const targetScrollTop = scrollRatio * maxScrollTop;
+    const handleMouseMove = (e) => {
+      const deltaX = Math.abs(e.clientX - startX);
+      const deltaY = Math.abs(e.clientY - startY);
+      
+      if (!isDragging && (deltaX > dragThreshold || deltaY > dragThreshold)) {
+        // Determine if this is horizontal (resize) or vertical (scroll) drag
+        if (deltaX > deltaY) {
+          isDragging = 'resize';
+        } else {
+          isDragging = 'scroll';
+        }
+      }
+      
+      if (isDragging === 'resize') {
+        // Handle panel resizing
+        const containerWidth = window.innerWidth;
+        const newLeftWidth = (e.clientX / containerWidth) * 100;
+        const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
+        setLeftPanelWidth(constrainedWidth);
+      } else if (isDragging === 'scroll') {
+        // Handle scrolling
+        const scrollContainer = document.querySelector('.left-panel');
+        const scrollbarRect = scrollbarElement.getBoundingClientRect();
+        const clickY = e.clientY - scrollbarRect.top;
+        const scrollbarHeight = scrollbarRect.height;
+        const scrollHeight = scrollContainer.scrollHeight;
+        const viewHeight = scrollContainer.clientHeight;
+        
+        const scrollRatio = Math.max(0, Math.min(1, clickY / scrollbarHeight));
+        const maxScrollTop = scrollHeight - viewHeight;
+        const targetScrollTop = scrollRatio * maxScrollTop;
+        
+        scrollContainer.scrollTop = targetScrollTop;
+        setScrollPosition(scrollRatio);
+      }
+    };
     
-    scrollContainer.scrollTop = targetScrollTop;
-    setScrollPosition(scrollRatio);
+    const handleMouseUp = (e) => {
+      if (!isDragging) {
+        // This was a simple click, handle as scroll positioning
+        const scrollContainer = document.querySelector('.left-panel');
+        const clickY = startY - startScrollbarRect.top;
+        const scrollbarHeight = startScrollbarRect.height;
+        const scrollHeight = scrollContainer.scrollHeight;
+        const viewHeight = scrollContainer.clientHeight;
+        
+        const scrollRatio = Math.max(0, Math.min(1, clickY / scrollbarHeight));
+        const maxScrollTop = scrollHeight - viewHeight;
+        const targetScrollTop = scrollRatio * maxScrollTop;
+        
+        scrollContainer.scrollTop = targetScrollTop;
+        setScrollPosition(scrollRatio);
+      }
+      
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   };
 
   // Update scroll position when scrolling
@@ -334,7 +391,7 @@ export default function ShakespeareExplainer() {
       >
         {/* Custom scrollbar overlay */}
         <div 
-          onClick={handleScrollbarClick}
+          onMouseDown={handleScrollbarMouseDown}
           style={{
             position: 'fixed',
             right: `${100 - leftPanelWidth}%`,
@@ -521,31 +578,6 @@ export default function ShakespeareExplainer() {
         </div>
       </div>
       
-      {/* Resizable separator */}
-      <div 
-        style={{
-          width: isMobile ? '12px' : '4px',
-          backgroundColor: '#ccc',
-          cursor: 'col-resize',
-          borderLeft: '1px solid #999',
-          borderRight: '1px solid #999',
-          touchAction: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-        onMouseDown={() => setIsResizing(true)}
-        onTouchStart={() => setIsResizing(true)}
-      >
-        {isMobile && (
-          <div style={{
-            width: '2px',
-            height: '20px',
-            backgroundColor: '#666',
-            borderRadius: '1px'
-          }} />
-        )}
-      </div>
       
       <div style={{ 
         width: `${100 - leftPanelWidth}%`, 
