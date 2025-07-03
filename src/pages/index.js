@@ -190,7 +190,7 @@ export default function ShakespeareExplainer() {
         <div style={{ marginBottom: '16px' }}>
           <input
             type="file"
-            accept="*"
+            accept="text/plain,.txt"
             onChange={handleFileUpload}
             style={{ 
               display: 'block',
