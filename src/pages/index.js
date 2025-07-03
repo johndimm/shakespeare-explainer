@@ -13,6 +13,42 @@ export default function ShakespeareExplainer() {
   const [lastClickedIndex, setLastClickedIndex] = useState(null);
   const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
   const [isResizing, setIsResizing] = useState(false);
+  const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Handle scrollbar click to jump to position
+  const handleScrollbarClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const scrollContainer = document.querySelector('.left-panel');
+    const scrollbarRect = e.currentTarget.getBoundingClientRect();
+    const clickY = e.clientY - scrollbarRect.top;
+    const scrollbarHeight = scrollbarRect.height;
+    const scrollHeight = scrollContainer.scrollHeight;
+    const viewHeight = scrollContainer.clientHeight;
+    
+    // Calculate target scroll position based on click position
+    const scrollRatio = clickY / scrollbarHeight;
+    const maxScrollTop = scrollHeight - viewHeight;
+    const targetScrollTop = scrollRatio * maxScrollTop;
+    
+    scrollContainer.scrollTop = targetScrollTop;
+    setScrollPosition(scrollRatio);
+  };
+
+  // Update scroll position when scrolling
+  const handleScroll = (e) => {
+    const scrollContainer = e.target;
+    const scrollTop = scrollContainer.scrollTop;
+    const scrollHeight = scrollContainer.scrollHeight;
+    const viewHeight = scrollContainer.clientHeight;
+    const maxScrollTop = scrollHeight - viewHeight;
+    
+    if (maxScrollTop > 0) {
+      const ratio = scrollTop / maxScrollTop;
+      setScrollPosition(ratio);
+    }
+  };
 
   // Detect mobile device
   useEffect(() => {
@@ -54,11 +90,9 @@ export default function ShakespeareExplainer() {
       
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-      document.body.style.touchAction = 'none';
     } else {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      document.body.style.touchAction = '';
     }
 
     return () => {
@@ -285,14 +319,48 @@ export default function ShakespeareExplainer() {
       minWidth: '1024px',
       overflow: 'hidden'
     }}>
-      <div style={{ 
-        width: `${leftPanelWidth}%`, 
-        padding: '16px',
-        paddingRight: '50px',
-        overflowY: 'auto',
-        backgroundColor: 'white',
-        color: 'black'
-      }}>
+      <div 
+        className="left-panel" 
+        onScroll={handleScroll}
+        style={{ 
+          width: `${leftPanelWidth}%`, 
+          padding: '16px',
+          paddingRight: '50px',
+          overflowY: 'auto',
+          backgroundColor: 'white',
+          color: 'black',
+          position: 'relative'
+        }}
+      >
+        {/* Custom scrollbar overlay */}
+        <div 
+          onClick={handleScrollbarClick}
+          style={{
+            position: 'fixed',
+            right: `${100 - leftPanelWidth}%`,
+            top: '0',
+            width: '20px',
+            height: '100vh',
+            backgroundColor: '#ddd',
+            cursor: 'pointer',
+            zIndex: 1000,
+            pointerEvents: 'auto'
+          }}
+        >
+          {/* Scroll position indicator */}
+          <div 
+            style={{
+              position: 'absolute',
+              left: '2px',
+              right: '2px',
+              top: `${scrollPosition * 100}%`,
+              height: '3px',
+              backgroundColor: '#666',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none'
+            }}
+          />
+        </div>
         <div style={{ marginBottom: '16px' }}>
           <input
             type="file"
@@ -372,7 +440,11 @@ export default function ShakespeareExplainer() {
             </div>
           </div>
         </div>
-        <div onMouseUp={!isMobile ? handleMouseUp : undefined} onMouseLeave={!isMobile ? handleMouseUp : undefined}>
+        <div 
+          onMouseUp={!isMobile ? handleMouseUp : undefined} 
+          onMouseLeave={!isMobile ? handleMouseUp : undefined}
+          style={{ touchAction: 'auto' }}
+        >
           {uploadedText.map((line, idx) => {
             const isSelected = selectedLines.some(item => item.index === idx);
             const isLastSelected = isMobile && selectedLines.length > 0 && 
