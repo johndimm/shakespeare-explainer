@@ -354,7 +354,7 @@ export default function ShakespeareExplainer() {
   return (
     <>
       <Head>
-        <meta name="viewport" content="width=1024, initial-scale=1.0, user-scalable=yes, minimum-scale=0.2, maximum-scale=3.0" />
+        <meta name="viewport" content="width=1024, initial-scale=0.4, user-scalable=yes, minimum-scale=0.2, maximum-scale=3.0" />
       </Head>
       <div style={{ 
         display: 'flex', 
