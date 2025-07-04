@@ -1,9 +1,6 @@
-const CACHE_NAME = 'shakespeare-explainer-v2';
+const CACHE_NAME = 'shakespeare-explainer-v3';
 const urlsToCache = [
   '/',
-  '/api/chat',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/app-manifest.json'
 ];
 

@@ -23,5 +23,7 @@
   "categories": ["education", "books", "reference"],
   "lang": "en",
   "scope": "/",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "orientation": "any",
+  "start_url": "/?source=pwa"
 }
