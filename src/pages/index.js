@@ -19,6 +19,9 @@ export default function ShakespeareExplainer() {
   const [highlightedLines, setHighlightedLines] = useState(new Set());
   const [showOutline, setShowOutline] = useState(false);
   const [outline, setOutline] = useState([]);
+  const [uiLanguage, setUiLanguage] = useState('en');
+  const [urlInput, setUrlInput] = useState('');
+  const [detectedAuthor, setDetectedAuthor] = useState('Shakespeare');
 
   // Download and load a play directly
   const loadPlay = async (url, title) => {
@@ -38,10 +41,56 @@ export default function ShakespeareExplainer() {
       
       setUploadedText(lines);
       setOutline(generateOutline(lines));
+      
+      // Detect author and update UI
+      const author = await detectAuthorWithLLM(lines.join(' '));
+      setDetectedAuthor(author);
+      
       setChatMessages([{ role: 'system', content: `${title} loaded! Click or drag to select lines for explanation.` }]);
     } catch (error) {
       console.error('Error loading play:', error);
       setChatMessages([{ role: 'system', content: `Failed to load ${title}. Please try the manual upload option below.` }]);
+    }
+  };
+
+  // Load text from URL
+  const loadTextFromURL = async () => {
+    if (!urlInput.trim()) return;
+    
+    try {
+      setChatMessages([{ role: 'system', content: `Loading text from URL...` }]);
+      setIsLoading(true);
+      
+      const response = await fetch('/api/load-play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput.trim() })
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch');
+      
+      const data = await response.json();
+      const lines = data.text.split('\n').filter(line => line.trim() !== '');
+      
+      setUploadedText(lines);
+      setOutline(generateOutline(lines));
+      
+      // Detect author and update UI
+      const author = await detectAuthorWithLLM(lines.join(' '));
+      setDetectedAuthor(author);
+      
+      // Extract title from URL or use a generic name
+      const urlParts = urlInput.split('/');
+      const fileName = urlParts[urlParts.length - 1] || 'Text from URL';
+      const title = fileName.replace(/\.(txt|html|md)$/i, '');
+      
+      setChatMessages([{ role: 'system', content: `${title} loaded! Click or drag to select lines for explanation.` }]);
+      setUrlInput(''); // Clear the input after successful load
+    } catch (error) {
+      console.error('Error loading text from URL:', error);
+      setChatMessages([{ role: 'system', content: `Failed to load text from URL. Please check the URL and try again.` }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -290,6 +339,12 @@ export default function ShakespeareExplainer() {
           const lines = text.split('\n').filter(line => line.trim() !== '');
           setUploadedText(lines);
           setOutline(generateOutline(lines));
+          
+          // Detect author and update UI
+          detectAuthorWithLLM(text).then(author => {
+            setDetectedAuthor(author);
+          });
+          
           setChatMessages([{ role: 'system', content: 'File uploaded! Click or drag to select lines for explanation.' }]);
         } catch (err) {
           console.error('Error reading file:', err);
@@ -391,8 +446,14 @@ export default function ShakespeareExplainer() {
       });
       const data = await res.json();
       
-      // Add assistant response to chat
+      // Add assistant response to chat and detect language
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      
+      // Update UI language based on assistant response
+      const detectedLang = detectUILanguage(data.response);
+      if (detectedLang !== uiLanguage) {
+        setUiLanguage(detectedLang);
+      }
     } catch (err) {
       console.error('Error:', err);
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Failed to get explanation.' }]);
@@ -432,8 +493,14 @@ export default function ShakespeareExplainer() {
       });
       const data = await res.json();
       
-      // Add assistant response to chat
+      // Add assistant response to chat and detect language
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      
+      // Update UI language based on assistant response
+      const detectedLang = detectUILanguage(data.response);
+      if (detectedLang !== uiLanguage) {
+        setUiLanguage(detectedLang);
+      }
     } catch (err) {
       console.error('Error:', err);
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error.' }]);
@@ -582,6 +649,142 @@ export default function ShakespeareExplainer() {
     jumpToText([lineIndex]);
   };
 
+  // Simple language detection for UI
+  const detectUILanguage = (text) => {
+    const sample = text.toLowerCase().slice(0, 500);
+    
+    // French indicators
+    if (sample.includes('être') || sample.includes('que') || sample.includes('dans') || 
+        sample.includes('avec') || sample.includes('pour') || sample.includes('cette') ||
+        sample.includes('très') || sample.includes('bien') || sample.includes('tout') ||
+        sample.includes('mais') || sample.includes('comme') || sample.includes('vous')) {
+      return 'fr';
+    }
+    
+    // Spanish indicators  
+    if (sample.includes('ser') || sample.includes('estar') || sample.includes('que') ||
+        sample.includes('con') || sample.includes('para') || sample.includes('esta') ||
+        sample.includes('muy') || sample.includes('bien') || sample.includes('todo') ||
+        sample.includes('pero') || sample.includes('como') || sample.includes('usted')) {
+      return 'es';
+    }
+    
+    // German indicators
+    if (sample.includes('sein') || sample.includes('haben') || sample.includes('das') ||
+        sample.includes('mit') || sample.includes('für') || sample.includes('diese') ||
+        sample.includes('sehr') || sample.includes('gut') || sample.includes('alle') ||
+        sample.includes('aber') || sample.includes('wie') || sample.includes('sie')) {
+      return 'de';
+    }
+    
+    return 'en';
+  };
+
+  // Detect author using LLM
+  const detectAuthorWithLLM = async (text) => {
+    try {
+      const sample = text.slice(0, 1500); // Take a sample of the text
+      
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a literary expert. Analyze the text and identify the author. Respond with ONLY the author\'s name (e.g., "Shakespeare", "Molière", "Racine", "Goethe", etc.). If you cannot determine the author, respond with "Unknown Author".'
+            },
+            {
+              role: 'user',
+              content: `Who is the author of this text? Here is a sample:\n\n${sample}`
+            }
+          ]
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const authorName = data.response.trim();
+        // Clean up the response to just get the author name
+        const cleanAuthor = authorName.replace(/[""'']/g, '').replace(/^(The author is|This is by|Author:|This appears to be)\s*/i, '');
+        return cleanAuthor || 'Shakespeare';
+      }
+    } catch (error) {
+      console.error('Error detecting author:', error);
+    }
+    
+    return 'Shakespeare'; // Default fallback
+  };
+
+  // UI text translations
+  const getUIText = (key) => {
+    const translations = {
+      en: {
+        shakespeareText: `📚 ${detectedAuthor} Text`,
+        showOutline: '📋 Show Outline',
+        hideOutline: '📖 Hide Outline',
+        textOutline: '📑 Text Outline',
+        quickLoad: '🎭 Quick Load Popular Plays',
+        uploadFile: '📂 Or Upload Your Own File',
+        pasteText: 'Or paste text here',
+        pasteHere: `Paste ${detectedAuthor} text here...`,
+        uploadDesc: `Upload a .txt file with ${detectedAuthor} text`,
+        shakespeareChat: `${detectedAuthor} Chat`,
+        saveChat: '💾 Save Chat',
+        summary: '📋 Summary',
+        you: 'You',
+        shakespeareExpert: `${detectedAuthor} Expert`,
+        system: 'System',
+        typing: `${detectedAuthor} Expert is typing...`,
+        askFollowUp: 'Ask follow-up questions...',
+        send: 'Send',
+        explainSelected: 'Explain Selected Lines',
+        clear: 'Clear',
+        clickToJump: '📍 Click to jump to text',
+        loaded: 'loaded! Click or drag to select lines for explanation.',
+        uploaded: 'File uploaded! Click or drag to select lines for explanation.',
+        pasted: 'Text pasted! Click or drag to select lines for explanation.',
+        loadFromURL: '🌐 Or Load from URL',
+        urlPlaceholder: `Enter URL to ${detectedAuthor} text...`,
+        loadButton: 'Load from URL',
+        urlDesc: 'Load text from any publicly accessible URL (txt, html, or other text files)'
+      },
+      fr: {
+        shakespeareText: `📚 Texte de ${detectedAuthor}`,
+        showOutline: '📋 Afficher le Plan',
+        hideOutline: '📖 Masquer le Plan',
+        textOutline: '📑 Plan du Texte',
+        quickLoad: '🎭 Chargement Rapide des Pièces Populaires',
+        uploadFile: '📂 Ou Téléchargez Votre Propre Fichier',
+        pasteText: 'Ou collez le texte ici',
+        pasteHere: `Collez le texte de ${detectedAuthor} ici...`,
+        uploadDesc: `Téléchargez un fichier .txt avec le texte de ${detectedAuthor}`,
+        shakespeareChat: `Chat ${detectedAuthor}`,
+        saveChat: '💾 Sauvegarder Chat',
+        summary: '📋 Résumé',
+        you: 'Vous',
+        shakespeareExpert: `Expert ${detectedAuthor}`,
+        system: 'Système',
+        typing: `Expert ${detectedAuthor} écrit...`,
+        askFollowUp: 'Posez des questions de suivi...',
+        send: 'Envoyer',
+        explainSelected: 'Expliquer les Lignes Sélectionnées',
+        clear: 'Effacer',
+        clickToJump: '📍 Cliquez pour aller au texte',
+        loaded: 'chargé ! Cliquez ou faites glisser pour sélectionner les lignes à expliquer.',
+        uploaded: 'Fichier téléchargé ! Cliquez ou faites glisser pour sélectionner les lignes à expliquer.',
+        pasted: 'Texte collé ! Cliquez ou faites glisser pour sélectionner les lignes à expliquer.',
+        loadFromURL: '🌐 Ou Charger depuis une URL',
+        urlPlaceholder: `Entrez l'URL du texte de ${detectedAuthor}...`,
+        loadButton: 'Charger depuis URL',
+        urlDesc: 'Charger le texte depuis n\'importe quelle URL publique (txt, html, ou autres fichiers texte)'
+      }
+    };
+    
+    return translations[uiLanguage]?.[key] || translations.en[key] || key;
+  };
+
+
   // Just scroll down a little to reveal some response
   const scrollToOptimalPosition = () => {
     setTimeout(() => {
@@ -654,7 +857,7 @@ export default function ShakespeareExplainer() {
         </div>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h2 style={{ fontWeight: 'bold', margin: 0, color: '#374151' }}>📚 Shakespeare Text</h2>
+            <h2 style={{ fontWeight: 'bold', margin: 0, color: '#374151' }}>{getUIText('shakespeareText')}</h2>
             {outline.length > 0 && (
               <button
                 onClick={() => setShowOutline(!showOutline)}
@@ -668,7 +871,7 @@ export default function ShakespeareExplainer() {
                   fontSize: '12px'
                 }}
               >
-                {showOutline ? '📖 Hide Outline' : '📋 Show Outline'}
+                {showOutline ? getUIText('hideOutline') : getUIText('showOutline')}
               </button>
             )}
           </div>
@@ -685,7 +888,7 @@ export default function ShakespeareExplainer() {
               overflowY: 'auto'
             }}>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>
-                📑 Text Outline
+                {getUIText('textOutline')}
               </h3>
               {outline.map((item, idx) => (
                 <div
@@ -736,7 +939,7 @@ export default function ShakespeareExplainer() {
           )}
           <div style={{ marginBottom: '12px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
-              🎭 Quick Load Popular Plays
+              {getUIText('quickLoad')}
             </h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
               <button
@@ -806,7 +1009,7 @@ export default function ShakespeareExplainer() {
             fontWeight: 'bold',
             color: '#374151'
           }}>
-            📂 Or Upload Your Own File
+            {getUIText('uploadFile')}
           </label>
           <input
             type="file"
@@ -822,21 +1025,80 @@ export default function ShakespeareExplainer() {
             }}
           />
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
-            Upload a .txt file with Shakespeare text
+            {getUIText('uploadDesc')}
+          </div>
+          
+          <label style={{ 
+            display: 'block',
+            marginBottom: '4px',
+            marginTop: '16px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#374151'
+          }}>
+            {getUIText('loadFromURL')}
+          </label>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <input
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder={getUIText('urlPlaceholder')}
+              disabled={isLoading}
+              style={{
+                flex: 1,
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '12px'
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  loadTextFromURL();
+                }
+              }}
+            />
+            <button
+              onClick={loadTextFromURL}
+              disabled={isLoading || !urlInput.trim()}
+              style={{
+                padding: '8px 12px',
+                backgroundColor: '#059669',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                opacity: (isLoading || !urlInput.trim()) ? 0.5 : 1
+              }}
+            >
+              {getUIText('loadButton')}
+            </button>
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>
+            {getUIText('urlDesc')}
           </div>
           
           <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
             <div style={{ color: '#374151', fontWeight: 'bold', marginBottom: '4px' }}>
-              Or paste text here
+              {getUIText('pasteText')}
             </div>
             <textarea
-              placeholder="Paste Shakespeare text here..."
+              placeholder={getUIText('pasteHere')}
               onChange={(e) => {
                 const text = e.target.value;
                 if (text.trim()) {
                   const lines = text.split('\n').filter(line => line.trim() !== '');
                   setUploadedText(lines);
                   setOutline(generateOutline(lines));
+                  
+                  // Detect author and update UI
+                  detectAuthorWithLLM(text).then(author => {
+                    setDetectedAuthor(author);
+                  });
+                  
                   setChatMessages([{ role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]);
                 }
               }}
@@ -913,7 +1175,7 @@ export default function ShakespeareExplainer() {
                         fontWeight: 'bold'
                       }}
                     >
-                      Explain Selected Lines ({selectedLines.length})
+{getUIText('explainSelected')} ({selectedLines.length})
                     </button>
                     <button
                       onClick={() => {
@@ -931,7 +1193,7 @@ export default function ShakespeareExplainer() {
                         fontWeight: 'bold'
                       }}
                     >
-                      Clear
+{getUIText('clear')}
                     </button>
                   </div>
                 )}
@@ -951,7 +1213,7 @@ export default function ShakespeareExplainer() {
         color: 'black'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h2 style={{ fontWeight: 'bold', margin: 0 }}>Shakespeare Chat</h2>
+          <h2 style={{ fontWeight: 'bold', margin: 0 }}>{getUIText('shakespeareChat')}</h2>
           {chatMessages.length > 0 && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
@@ -966,7 +1228,7 @@ export default function ShakespeareExplainer() {
                   fontSize: '12px'
                 }}
               >
-                💾 Save Chat
+{getUIText('saveChat')}
               </button>
               <button
                 onClick={getChatSummary}
@@ -982,7 +1244,7 @@ export default function ShakespeareExplainer() {
                   opacity: isLoading ? 0.5 : 1
                 }}
               >
-                📋 Summary
+{getUIText('summary')}
               </button>
             </div>
           )}
@@ -1017,7 +1279,7 @@ export default function ShakespeareExplainer() {
                 marginBottom: '4px',
                 color: msg.role === 'user' ? '#1976d2' : msg.role === 'assistant' ? '#666' : '#856404'
               }}>
-                {msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Shakespeare Expert' : 'System'}
+{msg.role === 'user' ? getUIText('you') : msg.role === 'assistant' ? getUIText('shakespeareExpert') : getUIText('system')}
               </div>
               <div 
                 style={{ 
@@ -1035,7 +1297,7 @@ export default function ShakespeareExplainer() {
                     marginLeft: '8px',
                     fontStyle: 'italic'
                   }}>
-                    📍 Click to jump to text
+{getUIText('clickToJump')}
                   </span>
                 )}
               </div>
@@ -1049,7 +1311,7 @@ export default function ShakespeareExplainer() {
               fontStyle: 'italic',
               marginBottom: '12px'
             }}>
-              Shakespeare Expert is typing...
+{getUIText('typing')}
             </div>
           )}
         </div>
@@ -1060,7 +1322,7 @@ export default function ShakespeareExplainer() {
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Ask follow-up questions..."
+            placeholder={getUIText('askFollowUp')}
             disabled={isLoading}
             style={{
               flex: 1,
@@ -1083,7 +1345,7 @@ export default function ShakespeareExplainer() {
               cursor: 'pointer'
             }}
           >
-            Send
+{getUIText('send')}
           </button>
         </form>
       </div>
