@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Head from 'next/head';
 
 export default function ShakespeareExplainer() {
   const [uploadedText, setUploadedText] = useState([]);
@@ -351,14 +352,18 @@ export default function ShakespeareExplainer() {
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      height: '100vh', 
-      fontFamily: 'monospace', 
-      fontSize: '14px',
-      minWidth: '1024px',
-      overflow: 'hidden'
-    }}>
+    <>
+      <Head>
+        <meta name="viewport" content="width=1024, initial-scale=1.0, user-scalable=yes, minimum-scale=0.2, maximum-scale=3.0" />
+      </Head>
+      <div style={{ 
+        display: 'flex', 
+        height: '100vh', 
+        fontFamily: 'monospace', 
+        fontSize: '14px',
+        minWidth: '1024px',
+        overflow: 'hidden'
+      }}>
       <div 
         className="left-panel" 
         onScroll={handleScroll}
@@ -656,5 +661,6 @@ export default function ShakespeareExplainer() {
         </form>
       </div>
     </div>
+    </>
   );
 }
