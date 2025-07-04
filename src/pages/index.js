@@ -17,6 +17,81 @@ export default function ShakespeareExplainer() {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [showButtons, setShowButtons] = useState(false);
 
+  // Download and load a play directly
+  const loadPlay = async (url, title) => {
+    try {
+      setChatMessages([{ role: 'system', content: `Loading ${title}...` }]);
+      
+      const response = await fetch('/api/load-play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch');
+      
+      const data = await response.json();
+      const lines = data.text.split('\n').filter(line => line.trim() !== '');
+      
+      setUploadedText(lines);
+      setChatMessages([{ role: 'system', content: `${title} loaded! Click or drag to select lines for explanation.` }]);
+    } catch (error) {
+      console.error('Error loading play:', error);
+      setChatMessages([{ role: 'system', content: `Failed to load ${title}. Please try the manual upload option below.` }]);
+    }
+  };
+
+  // Save chat as text file
+  const saveChatToFile = () => {
+    const chatText = chatMessages.map(msg => {
+      const role = msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Shakespeare Expert' : 'System';
+      return `${role}:\n${msg.content}\n\n`;
+    }).join('');
+    
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shakespeare-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Get chat summary
+  const getChatSummary = async () => {
+    if (chatMessages.length === 0) return;
+    
+    const chatText = chatMessages
+      .filter(msg => msg.role !== 'system')
+      .map(msg => `${msg.role}: ${msg.content}`)
+      .join('\n\n');
+    
+    setIsLoading(true);
+    setChatMessages(prev => [...prev, { role: 'user', content: 'Please provide a summary of our conversation, including the main topics discussed and key things learned about Shakespeare.' }]);
+    
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: [
+            { role: 'system', content: 'You are a Shakespeare expert. Provide a concise summary of the conversation, highlighting main topics discussed and key insights about Shakespeare\'s works.' },
+            { role: 'user', content: `Please summarize this conversation about Shakespeare:\n\n${chatText}` }
+          ]
+        }),
+      });
+      const data = await res.json();
+      
+      setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+    } catch (err) {
+      console.error('Error:', err);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I could not generate a summary.' }]);
+    }
+    setIsLoading(false);
+  };
+
   // Handle scrollbar interaction (scroll or resize)
   const handleScrollbarStart = (e) => {
     e.preventDefault();
@@ -408,6 +483,81 @@ export default function ShakespeareExplainer() {
           />
         </div>
         <div style={{ marginBottom: '16px' }}>
+          <h2 style={{ fontWeight: 'bold', marginBottom: '12px', color: '#374151' }}>📚 Shakespeare Text</h2>
+          <div style={{ marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
+              🎭 Quick Load Popular Plays
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+              <button
+                onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/romeo-and-juliet_TXT_FolgerShakespeare.txt', 'Romeo and Juliet')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Romeo & Juliet
+              </button>
+              <button
+                onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/macbeth_TXT_FolgerShakespeare.txt', 'Macbeth')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Macbeth
+              </button>
+              <button
+                onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/hamlet_TXT_FolgerShakespeare.txt', 'Hamlet')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Hamlet
+              </button>
+            </div>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+              Need more plays? Visit{' '}
+              <a 
+                href="https://www.folger.edu/explore/shakespeares-works/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#3b82f6', textDecoration: 'underline' }}
+              >
+                Folger Shakespeare Library
+              </a>
+              {' '}to find and download additional works.
+            </div>
+          </div>
+          
+          <label style={{ 
+            display: 'block',
+            marginBottom: '4px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#374151'
+          }}>
+            📂 Or Upload Your Own File
+          </label>
           <input
             type="file"
             accept="text/plain,.txt"
@@ -421,69 +571,35 @@ export default function ShakespeareExplainer() {
               borderRadius: '4px'
             }}
           />
+          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+            Upload a .txt file with Shakespeare text
+          </div>
           
           <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
-            <details open>
-              <summary style={{ cursor: 'pointer', color: '#3b82f6', fontWeight: 'bold' }}>
-                Mobile users: Paste text here (recommended)
-              </summary>
-              <textarea
-                placeholder="Paste Shakespeare text here..."
-                onChange={(e) => {
-                  const text = e.target.value;
-                  if (text.trim()) {
-                    const lines = text.split('\n').filter(line => line.trim() !== '');
-                    setUploadedText(lines);
-                    setChatMessages([{ role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  height: '100px',
-                  marginTop: '8px',
-                  padding: '8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: '#fefdf0',
-                  color: 'black'
-                }}
-              />
-            </details>
-          </div>
-          <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
-            Sample texts: 
-            <a 
-              href="https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/romeo-and-juliet_TXT_FolgerShakespeare.txt"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#3b82f6', textDecoration: 'underline' }}
-            >
-              Romeo and Juliet
-            </a>
-            {' | '}
-            <a 
-              href="https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/macbeth_TXT_FolgerShakespeare.txt"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#3b82f6', textDecoration: 'underline' }}
-            >
-              Macbeth
-            </a>
-            {' | '}
-            <a 
-              href="https://www.folger.edu/explore/shakespeares-works/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#3b82f6', textDecoration: 'underline' }}
-            >
-              More plays
-            </a>
-            <div style={{ marginTop: '4px' }}>
-              Click to open up a new tab with the Shakespeare text, thanks to the Folger Shakespeare Library. 
-              Use Chrome's menu File/Save Page As... and select a location on your computer. 
-              Then upload the text file to this app.
+            <div style={{ color: '#374151', fontWeight: 'bold', marginBottom: '4px' }}>
+              Or paste text here
             </div>
+            <textarea
+              placeholder="Paste Shakespeare text here..."
+              onChange={(e) => {
+                const text = e.target.value;
+                if (text.trim()) {
+                  const lines = text.split('\n').filter(line => line.trim() !== '');
+                  setUploadedText(lines);
+                  setChatMessages([{ role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]);
+                }
+              }}
+              style={{
+                width: '100%',
+                height: '100px',
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '12px',
+                backgroundColor: '#fefdf0',
+                color: 'black'
+              }}
+            />
           </div>
         </div>
         <div 
@@ -580,7 +696,43 @@ export default function ShakespeareExplainer() {
         backgroundColor: 'white',
         color: 'black'
       }}>
-        <h2 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Shakespeare Chat</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h2 style={{ fontWeight: 'bold', margin: 0 }}>Shakespeare Chat</h2>
+          {chatMessages.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={saveChatToFile}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                💾 Save Chat
+              </button>
+              <button
+                onClick={getChatSummary}
+                disabled={isLoading}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#8b5cf6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  opacity: isLoading ? 0.5 : 1
+                }}
+              >
+                📋 Summary
+              </button>
+            </div>
+          )}
+        </div>
         
         {/* Chat messages */}
         <div 
