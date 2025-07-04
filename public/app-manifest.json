@@ -1,6 +1,6 @@
 {
   "name": "Shakespeare Text Explainer",
-  "short_name": "Shakespeare",
+  "short_name": "Shakespeare Explainer",
   "description": "AI-powered Shakespeare text analysis and explanation tool",
   "start_url": "/",
   "display": "standalone",
