@@ -816,7 +816,9 @@ export default function ShakespeareExplainer() {
               flex: 1,
               padding: '8px',
               border: '1px solid #ccc',
-              borderRadius: '4px'
+              borderRadius: '4px',
+              backgroundColor: 'white',
+              color: 'black'
             }}
           />
           <button
