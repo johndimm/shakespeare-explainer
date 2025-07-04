@@ -24,6 +24,6 @@
   "lang": "en",
   "scope": "/",
   "prefer_related_applications": false,
-  "orientation": "any",
+  "orientation": "landscape",
   "start_url": "/?source=pwa"
 }
