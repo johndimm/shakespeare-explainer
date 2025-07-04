@@ -803,10 +803,50 @@ export default function ShakespeareExplainer() {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
       </Head>
+      
+      {/* Header with User Guide Link */}
+      <div style={{
+        backgroundColor: '#f8fafc',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '8px 16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        fontSize: '14px'
+      }}>
+        <div style={{ fontWeight: 'bold', color: '#374151' }}>
+          📚 Classic Literature Explainer
+        </div>
+        <a 
+          href="/guide" 
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ 
+            color: '#3b82f6', 
+            textDecoration: 'none',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            border: '1px solid #3b82f6',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.backgroundColor = '#3b82f6';
+            e.target.style.color = 'white';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.backgroundColor = 'transparent';
+            e.target.style.color = '#3b82f6';
+          }}
+        >
+          📖 User Guide
+        </a>
+      </div>
+      
       <div style={{ 
         display: 'flex', 
         flexDirection: 'row',
-        height: '100vh', 
+        height: 'calc(100vh - 41px)', // Subtract header height
         fontFamily: 'monospace', 
         fontSize: '14px',
         minWidth: isMobile ? 'auto' : '1024px',
