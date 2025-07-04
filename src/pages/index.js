@@ -115,20 +115,35 @@ export default function ShakespeareExplainer() {
       const deltaY = Math.abs(currentY - startY);
       
       if (!isDragging && (deltaX > dragThreshold || deltaY > dragThreshold)) {
-        // Determine if this is horizontal (resize) or vertical (scroll) drag
-        if (deltaX > deltaY) {
+        // On mobile, prioritize resizing. On desktop, check direction
+        if (isMobile) {
           isDragging = 'resize';
         } else {
-          isDragging = 'scroll';
+          // Determine if this is horizontal (resize) or vertical (scroll) drag
+          if (deltaX > deltaY) {
+            isDragging = 'resize';
+          } else {
+            isDragging = 'scroll';
+          }
         }
       }
       
       if (isDragging === 'resize') {
-        // Handle panel resizing
+        // Handle panel resizing with direct DOM manipulation for smoothness
         const containerWidth = window.innerWidth;
         const newLeftWidth = (currentX / containerWidth) * 100;
         const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
-        setLeftPanelWidth(constrainedWidth);
+        
+        // Update DOM directly for smooth performance
+        const leftPanel = document.querySelector('.left-panel');
+        const rightPanel = leftPanel.nextElementSibling;
+        const scrollbar = scrollbarElement;
+        
+        if (leftPanel && rightPanel && scrollbar) {
+          leftPanel.style.width = `${constrainedWidth}%`;
+          rightPanel.style.width = `${100 - constrainedWidth}%`;
+          scrollbar.style.right = `${100 - constrainedWidth}%`;
+        }
       } else if (isDragging === 'scroll') {
         // Handle scrolling
         const scrollContainer = document.querySelector('.left-panel');
@@ -162,6 +177,13 @@ export default function ShakespeareExplainer() {
         
         scrollContainer.scrollTop = targetScrollTop;
         setScrollPosition(scrollRatio);
+      } else if (isDragging === 'resize') {
+        // Sync React state with final DOM state after resize
+        const leftPanel = document.querySelector('.left-panel');
+        if (leftPanel) {
+          const currentWidth = parseFloat(leftPanel.style.width);
+          setLeftPanelWidth(currentWidth);
+        }
       }
       
       document.removeEventListener('mousemove', handleMove);
@@ -433,6 +455,7 @@ export default function ShakespeareExplainer() {
       </Head>
       <div style={{ 
         display: 'flex', 
+        flexDirection: 'row',
         height: '100vh', 
         fontFamily: 'monospace', 
         fontSize: '14px',
@@ -452,7 +475,7 @@ export default function ShakespeareExplainer() {
           position: 'relative'
         }}
       >
-        {/* Custom scrollbar overlay */}
+        {/* Custom scrollbar overlay - positioned relative to left panel */}
         <div 
           onMouseDown={handleScrollbarStart}
           onTouchStart={handleScrollbarStart}
@@ -463,7 +486,7 @@ export default function ShakespeareExplainer() {
             width: '20px',
             height: '100vh',
             backgroundColor: '#ddd',
-            cursor: 'pointer',
+            cursor: 'col-resize',
             zIndex: 1000,
             pointerEvents: 'auto'
           }}
@@ -812,6 +835,7 @@ export default function ShakespeareExplainer() {
           </button>
         </form>
       </div>
+      
     </div>
     </>
   );
