@@ -1,7 +1,7 @@
 {
-  "name": "Shakespeare Text Explainer",
-  "short_name": "Shakespeare Explainer",
-  "description": "AI-powered Shakespeare text analysis and explanation tool",
+  "name": "Classic Literature Explainer",
+  "short_name": "Literature Explainer", 
+  "description": "AI-powered classic literature analysis tool for Shakespeare, Molière, Racine, Goethe and other authors",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -20,10 +20,26 @@
       "purpose": "any"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Classic Literature Explainer - Desktop interface showing text analysis with Shakespeare's Hamlet"
+    },
+    {
+      "src": "/screenshot-narrow.png", 
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Classic Literature Explainer - Mobile interface for text selection and AI explanations"
+    }
+  ],
   "categories": ["education", "books", "reference"],
   "lang": "en",
   "scope": "/",
   "prefer_related_applications": false,
-  "orientation": "landscape",
+  "orientation": "any",
   "start_url": "/?source=pwa"
 }

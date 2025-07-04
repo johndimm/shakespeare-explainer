@@ -133,6 +133,97 @@ export default function UserGuide() {
           </Link>
         </header>
 
+        {/* Overview Section - Always Visible */}
+        <section style={{
+          marginBottom: '30px',
+          padding: '20px',
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px'
+        }}>
+          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#1f2937' }}>
+            📖 Welcome to the Classic Literature Explainer
+          </h2>
+          
+          <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '16px', color: '#374151' }}>
+            This powerful tool helps you understand classic literature from Shakespeare, Molière, Racine, Goethe, and other great authors. 
+            The AI automatically detects the author and language, adapting its expertise and interface accordingly.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+            <div style={{
+              padding: '12px',
+              backgroundColor: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '20px', marginBottom: '8px' }}>🎭</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>Universal Author Support</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Shakespeare, Molière, Racine, Goethe & more</div>
+            </div>
+            
+            <div style={{
+              padding: '12px',
+              backgroundColor: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '20px', marginBottom: '8px' }}>🌍</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>Multilingual Analysis</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>English, French, German, Spanish & more</div>
+            </div>
+            
+            <div style={{
+              padding: '12px',
+              backgroundColor: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '20px', marginBottom: '8px' }}>⚡</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>Smart Interface</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Auto-adapts to detected author & language</div>
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: '#dbeafe',
+            border: '1px solid #3b82f6',
+            borderRadius: '6px',
+            padding: '12px',
+            marginBottom: '16px'
+          }}>
+            <h3 style={{ fontSize: '16px', margin: '0 0 8px 0', color: '#1e40af' }}>🚀 Getting Started in 3 Steps:</h3>
+            <ol style={{ margin: 0, paddingLeft: '20px', color: '#374151' }}>
+              <li><strong>Load Text:</strong> Use quick-load buttons, upload a file, or paste text</li>
+              <li><strong>Select Lines:</strong> Click and drag to highlight the passage you want explained</li>
+              <li><strong>Get Expert Analysis:</strong> Receive detailed explanations with historical context and literary insights</li>
+            </ol>
+          </div>
+
+          <div style={{
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #10b981',
+            borderRadius: '6px',
+            padding: '12px'
+          }}>
+            <h3 style={{ fontSize: '16px', margin: '0 0 8px 0', color: '#059669' }}>🎯 Key Features:</h3>
+            <ul style={{ margin: 0, paddingLeft: '20px', color: '#374151', fontSize: '14px' }}>
+              <li><strong>Language Control:</strong> Choose responses in the original language or English</li>
+              <li><strong>Jump Navigation:</strong> Click chat messages to return to original text passages</li>
+              <li><strong>Outline View:</strong> Navigate large works by acts and scenes</li>
+              <li><strong>Save & Share:</strong> Download conversations and get AI summaries</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Collapsible Sections */}
+        <div style={{ marginBottom: '20px', textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
+          Click any section below for detailed instructions:
+        </div>
+
         {/* Quick Start */}
         <section style={sectionStyle}>
           <div 
@@ -332,6 +423,8 @@ export default function UserGuide() {
                 <strong>📋 Example URLs:</strong>
                 <div style={diagramStyle}>
                   <div style={{ textAlign: 'left', fontSize: '12px', fontFamily: 'monospace' }}>
+                    • https://shakespeare-explainer.vercel.app/le-misanthrope-moliere.txt<br />
+                    <span style={{ color: '#6b7280', marginLeft: '10px' }}>(Molière's Le Misanthrope in French)</span><br /><br />
                     • https://www.gutenberg.org/files/1524/1524-0.txt<br />
                     <span style={{ color: '#6b7280', marginLeft: '10px' }}>(Hamlet in French)</span><br /><br />
                     • https://raw.githubusercontent.com/user/repo/main/play.txt<br />
@@ -743,33 +836,83 @@ export default function UserGuide() {
                 <li>Connections to other works</li>
               </ul>
 
-              <h3>Language Support</h3>
+              <h3>Language Support & Preferences</h3>
               <div style={featureBoxStyle}>
-                <strong>🌍 Multi-Language:</strong> The app automatically responds in the same language as your text. French texts get French explanations, German texts get German explanations, etc.
+                <strong>🌍 Response Language Control:</strong> Choose how the AI responds to your questions with the language preference dropdown in the chat header.
                 
-                {/* Language Support Visual */}
+                {/* Language Preference Visual */}
                 <div style={diagramStyle}>
-                  <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ marginBottom: '20px', fontSize: '16px', fontWeight: 'bold' }}>⚙️ Language Preference Options</div>
+                  
+                  {/* Option 1: Match Text Language */}
+                  <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0f9ff', border: '1px solid #0ea5e9', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>📚 Match Text Language (Default)</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', marginBottom: '5px' }}>🇫🇷 French Text</div>
+                        <span style={arrowStyle}>↓</span>
+                        <div style={{ fontSize: '12px' }}>Réponse en Français</div>
+                      </div>
+                      
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', marginBottom: '5px' }}>🇩🇪 German Text</div>
+                        <span style={arrowStyle}>↓</span>
+                        <div style={{ fontSize: '12px' }}>Deutsche Antwort</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Option 2: English (My Language) */}
+                  <div style={{ padding: '15px', backgroundColor: '#f0fdf4', border: '1px solid #10b981', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>🇬🇧 English (My Language)</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', marginBottom: '5px' }}>🇫🇷 French Text</div>
+                        <span style={arrowStyle}>↓</span>
+                        <div style={{ fontSize: '12px' }}>Response in English</div>
+                      </div>
+                      
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', marginBottom: '5px' }}>🇩🇪 German Text</div>
+                        <span style={arrowStyle}>↓</span>
+                        <div style={{ fontSize: '12px' }}>Response in English</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <h3>Instant Language Switching</h3>
+              <div style={featureBoxStyle}>
+                <strong>🔄 Automatic Resubmission:</strong> When you change the language preference, the app automatically resubmits your last question with the new language setting.
+                
+                {/* Resubmission Flow Visual */}
+                <div style={diagramStyle}>
+                  <div style={{ marginBottom: '15px', fontSize: '16px', fontWeight: 'bold' }}>⚡ Instant Language Switch</div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', flexWrap: 'wrap' }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '20px', marginBottom: '5px' }}>🇬🇧</div>
-                      <div style={{ fontSize: '12px', fontWeight: 'bold' }}>English Input</div>
-                      <span style={arrowStyle}>↓</span>
-                      <div style={{ fontSize: '12px' }}>English Response</div>
+                      <div style={{...interfaceBoxStyle, backgroundColor: '#3b82f6', color: 'white'}}>Ask in French Text</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px' }}>Gets French response</div>
                     </div>
                     
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '20px', marginBottom: '5px' }}>🇫🇷</div>
-                      <div style={{ fontSize: '12px', fontWeight: 'bold' }}>French Input</div>
-                      <span style={arrowStyle}>↓</span>
-                      <div style={{ fontSize: '12px' }}>Réponse Française</div>
-                    </div>
+                    <span style={arrowStyle}>→</span>
                     
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '20px', marginBottom: '5px' }}>🇩🇪</div>
-                      <div style={{ fontSize: '12px', fontWeight: 'bold' }}>German Input</div>
-                      <span style={arrowStyle}>↓</span>
-                      <div style={{ fontSize: '12px' }}>Deutsche Antwort</div>
+                      <div style={{...interfaceBoxStyle, backgroundColor: '#f59e0b', color: 'white'}}>Switch to English</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px' }}>Change dropdown</div>
                     </div>
+                    
+                    <span style={arrowStyle}>→</span>
+                    
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{...interfaceBoxStyle, backgroundColor: '#10b981', color: 'white'}}>Auto Resubmit</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px' }}>Same question, English answer</div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '15px', fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
+                    📝 Plus a manual "🔄 Resubmit" button for on-demand language switching
                   </div>
                 </div>
               </div>
@@ -1120,7 +1263,7 @@ export default function UserGuide() {
               </div>
 
               <div style={tipBoxStyle}>
-                <strong>🌍 Explore Languages:</strong> Try French Molière or German Goethe to experience the multilingual capabilities.
+                <strong>🌍 Explore Languages:</strong> Try French Molière or German Goethe to experience the multilingual capabilities. Use the language preference toggle to switch between immersive learning (same language) and comfortable learning (English explanations).
               </div>
 
               <h3>Study Strategies</h3>
@@ -1168,6 +1311,40 @@ export default function UserGuide() {
               </ul>
             </div>
           )}
+        </section>
+
+        {/* FAQ Section - Always Visible */}
+        <section style={{
+          marginTop: '30px',
+          marginBottom: '30px',
+          padding: '20px',
+          backgroundColor: '#fffbeb',
+          border: '1px solid #f59e0b',
+          borderRadius: '8px'
+        }}>
+          <h2 style={{ fontSize: '20px', marginBottom: '16px', color: '#92400e' }}>
+            ❓ Frequently Asked Questions
+          </h2>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <strong style={{ color: '#92400e' }}>Q: Does this work with authors other than Shakespeare?</strong>
+            <p style={{ margin: '4px 0 0 0', color: '#374151' }}>A: Yes! The app automatically detects and adapts to Molière, Racine, Goethe, Cervantes, and other classic authors.</p>
+          </div>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <strong style={{ color: '#92400e' }}>Q: Can I get explanations in English for foreign texts?</strong>
+            <p style={{ margin: '4px 0 0 0', color: '#374151' }}>A: Absolutely! Use the "🇬🇧 English (My Language)" option in the chat header to get English explanations for any text.</p>
+          </div>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <strong style={{ color: '#92400e' }}>Q: How do I load my own text files?</strong>
+            <p style={{ margin: '4px 0 0 0', color: '#374151' }}>A: Use the file upload button, paste text directly, or load from a URL. The app supports .txt files and most web-accessible text.</p>
+          </div>
+          
+          <div>
+            <strong style={{ color: '#92400e' }}>Q: What if I can't select text properly?</strong>
+            <p style={{ margin: '4px 0 0 0', color: '#374151' }}>A: On mobile, try tapping instead of dragging. On desktop, click and hold then drag. Check the Troubleshooting section below for more help.</p>
+          </div>
         </section>
 
         <footer style={{ 

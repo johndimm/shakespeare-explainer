@@ -22,6 +22,10 @@ export default function ShakespeareExplainer() {
   const [uiLanguage, setUiLanguage] = useState('en');
   const [urlInput, setUrlInput] = useState('');
   const [detectedAuthor, setDetectedAuthor] = useState('Shakespeare');
+  const [responseLanguage, setResponseLanguage] = useState('match'); // 'match' or 'native'
+  const [myLanguage, setMyLanguage] = useState('en'); // User's preferred mother tongue
+  const [lastUserMessage, setLastUserMessage] = useState(null); // Track last message for resubmission
+  const [previousResponseLanguage, setPreviousResponseLanguage] = useState('match'); // Track previous setting
 
   // Download and load a play directly
   const loadPlay = async (url, title) => {
@@ -47,6 +51,18 @@ export default function ShakespeareExplainer() {
       setDetectedAuthor(author);
       
       setChatMessages([{ role: 'system', content: `${title} loaded! Click or drag to select lines for explanation.` }]);
+      
+      // Auto-scroll to the beginning of the loaded text
+      setTimeout(() => {
+        const leftPanel = document.querySelector('.left-panel');
+        const firstTextLine = leftPanel?.querySelector('[data-line-index="0"]');
+        if (firstTextLine) {
+          firstTextLine.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      }, 300);
     } catch (error) {
       console.error('Error loading play:', error);
       setChatMessages([{ role: 'system', content: `Failed to load ${title}. Please try the manual upload option below.` }]);
@@ -86,6 +102,18 @@ export default function ShakespeareExplainer() {
       
       setChatMessages([{ role: 'system', content: `${title} loaded! Click or drag to select lines for explanation.` }]);
       setUrlInput(''); // Clear the input after successful load
+      
+      // Auto-scroll to the beginning of the loaded text
+      setTimeout(() => {
+        const leftPanel = document.querySelector('.left-panel');
+        const firstTextLine = leftPanel?.querySelector('[data-line-index="0"]');
+        if (firstTextLine) {
+          firstTextLine.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      }, 300);
     } catch (error) {
       console.error('Error loading text from URL:', error);
       setChatMessages([{ role: 'system', content: `Failed to load text from URL. Please check the URL and try again.` }]);
@@ -346,6 +374,18 @@ export default function ShakespeareExplainer() {
           });
           
           setChatMessages([{ role: 'system', content: 'File uploaded! Click or drag to select lines for explanation.' }]);
+          
+          // Auto-scroll to the beginning of the loaded text
+          setTimeout(() => {
+            const leftPanel = document.querySelector('.left-panel');
+            const firstTextLine = leftPanel?.querySelector('[data-line-index="0"]');
+            if (firstTextLine) {
+              firstTextLine.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              });
+            }
+          }, 300);
         } catch (err) {
           console.error('Error reading file:', err);
           alert('Error reading file. Please try the paste option instead.');
@@ -423,6 +463,7 @@ export default function ShakespeareExplainer() {
     
     // Add user message to chat with line indices for linking
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage, lineIndices }]);
+    setLastUserMessage({ content: userMessage, lineIndices }); // Store for potential resubmission
     // Scroll to show user input immediately
     setTimeout(() => {
       const userMessages = document.querySelectorAll('[data-role="user"]');
@@ -437,11 +478,14 @@ export default function ShakespeareExplainer() {
     setIsLoading(true);
     
     try {
+      console.log('explainSelectedText - Sending request with responseLanguage:', responseLanguage);
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          messages: [...chatMessages, { role: 'user', content: userMessage }]
+          messages: [...chatMessages, { role: 'user', content: userMessage }],
+          responseLanguage: responseLanguage,
+          myLanguage: myLanguage
         }),
       });
       const data = await res.json();
@@ -470,6 +514,7 @@ export default function ShakespeareExplainer() {
     
     // Add user message to chat
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setLastUserMessage({ content: userMessage }); // Store for potential resubmission
     // Scroll to show user input immediately
     setTimeout(() => {
       const userMessages = document.querySelectorAll('[data-role="user"]');
@@ -484,11 +529,14 @@ export default function ShakespeareExplainer() {
     setIsLoading(true);
     
     try {
+      console.log('sendChatMessage - Sending request with responseLanguage:', responseLanguage);
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          messages: [...chatMessages, { role: 'user', content: userMessage }]
+          messages: [...chatMessages, { role: 'user', content: userMessage }],
+          responseLanguage: responseLanguage,
+          myLanguage: myLanguage
         }),
       });
       const data = await res.json();
@@ -716,6 +764,60 @@ export default function ShakespeareExplainer() {
     return 'Shakespeare'; // Default fallback
   };
 
+  // Resubmit last message with current language preference
+  const resubmitLastMessage = async () => {
+    if (!lastUserMessage || isLoading) return;
+    
+    setIsLoading(true);
+    
+    try {
+      console.log('Resubmitting last message with responseLanguage:', responseLanguage);
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: [...chatMessages.slice(0, -1), { role: 'user', content: lastUserMessage.content }],
+          responseLanguage: responseLanguage,
+          myLanguage: myLanguage
+        }),
+      });
+      const data = await res.json();
+      
+      // Replace the last assistant response
+      setChatMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: data.response }]);
+      
+      // Update UI language based on assistant response
+      const detectedLang = detectUILanguage(data.response);
+      if (detectedLang !== uiLanguage) {
+        setUiLanguage(detectedLang);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setChatMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: 'Sorry, I encountered an error resubmitting the request.' }]);
+    }
+    setIsLoading(false);
+  };
+
+  // Auto-resubmit when language preference changes
+  useEffect(() => {
+    // Only auto-resubmit if:
+    // 1. Language preference actually changed
+    // 2. There's a last message to resubmit
+    // 3. There are chat messages
+    // 4. Not currently loading
+    // 5. Previous response language was set (not initial load)
+    if (responseLanguage !== previousResponseLanguage && 
+        lastUserMessage && 
+        chatMessages.length > 0 && 
+        !isLoading &&
+        previousResponseLanguage !== 'match' // Don't auto-resubmit on initial load
+    ) {
+      console.log('Auto-resubmitting due to language preference change from', previousResponseLanguage, 'to', responseLanguage);
+      resubmitLastMessage();
+    }
+    setPreviousResponseLanguage(responseLanguage);
+  }, [responseLanguage]);
+
   // UI text translations
   const getUIText = (key) => {
     const translations = {
@@ -804,49 +906,10 @@ export default function ShakespeareExplainer() {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
       </Head>
       
-      {/* Header with User Guide Link */}
-      <div style={{
-        backgroundColor: '#f8fafc',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '8px 16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '14px'
-      }}>
-        <div style={{ fontWeight: 'bold', color: '#374151' }}>
-          📚 Classic Literature Explainer
-        </div>
-        <a 
-          href="/guide" 
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ 
-            color: '#3b82f6', 
-            textDecoration: 'none',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            border: '1px solid #3b82f6',
-            fontSize: '12px',
-            fontWeight: 'bold'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = '#3b82f6';
-            e.target.style.color = 'white';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = 'transparent';
-            e.target.style.color = '#3b82f6';
-          }}
-        >
-          📖 User Guide
-        </a>
-      </div>
-      
       <div style={{ 
         display: 'flex', 
         flexDirection: 'row',
-        height: 'calc(100vh - 41px)', // Subtract header height
+        height: '100vh',
         fontFamily: 'monospace', 
         fontSize: '14px',
         minWidth: isMobile ? 'auto' : '1024px',
@@ -873,47 +936,97 @@ export default function ShakespeareExplainer() {
             position: 'fixed',
             right: `${100 - leftPanelWidth}%`,
             top: '0',
-            width: '20px',
+            width: '32px',
             height: '100vh',
-            backgroundColor: '#ddd',
+            backgroundColor: '#e5e7eb',
             cursor: 'col-resize',
             zIndex: 1000,
-            pointerEvents: 'auto'
+            pointerEvents: 'auto',
+            borderLeft: '1px solid #d1d5db',
+            borderRight: '1px solid #d1d5db'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.backgroundColor = '#d1d5db';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.backgroundColor = '#e5e7eb';
           }}
         >
+          {/* Resize grip lines */}
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '4px',
+            height: '40px',
+            backgroundImage: `
+              linear-gradient(to bottom, transparent 0px, #9ca3af 2px, #9ca3af 4px, transparent 6px, transparent 8px, #9ca3af 10px, #9ca3af 12px, transparent 14px, transparent 16px, #9ca3af 18px, #9ca3af 20px, transparent 22px, transparent 24px, #9ca3af 26px, #9ca3af 28px, transparent 30px, transparent 32px, #9ca3af 34px, #9ca3af 36px, transparent 38px)
+            `,
+            backgroundSize: '4px 4px',
+            pointerEvents: 'none'
+          }} />
+          
           {/* Scroll position indicator */}
           <div 
             style={{
               position: 'absolute',
-              left: '2px',
-              right: '2px',
+              left: '4px',
+              right: '4px',
               top: `${scrollPosition * 100}%`,
-              height: '3px',
-              backgroundColor: '#666',
+              height: '6px',
+              backgroundColor: '#3b82f6',
+              borderRadius: '3px',
               transform: 'translateY(-50%)',
               pointerEvents: 'none'
             }}
           />
         </div>
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <h2 style={{ fontWeight: 'bold', margin: 0, color: '#374151' }}>{getUIText('shakespeareText')}</h2>
-            {outline.length > 0 && (
-              <button
-                onClick={() => setShowOutline(!showOutline)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: showOutline ? '#dc2626' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <a 
+                href="/guide" 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  color: '#3b82f6', 
+                  textDecoration: 'none',
+                  padding: '3px 6px',
                   borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
+                  border: '1px solid #3b82f6',
+                  fontSize: '11px',
+                  fontWeight: 'bold'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#3b82f6';
+                  e.target.style.color = 'white';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#3b82f6';
                 }}
               >
-                {showOutline ? getUIText('hideOutline') : getUIText('showOutline')}
-              </button>
-            )}
+                📖 User Guide
+              </a>
+              {outline.length > 0 && (
+                <button
+                  onClick={() => setShowOutline(!showOutline)}
+                  style={{
+                    padding: '4px 8px',
+                    backgroundColor: showOutline ? '#dc2626' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  {showOutline ? getUIText('hideOutline') : getUIText('showOutline')}
+                </button>
+              )}
+            </div>
           </div>
           
           {/* Outline Panel */}
@@ -977,22 +1090,35 @@ export default function ShakespeareExplainer() {
               ))}
             </div>
           )}
-          <div style={{ marginBottom: '12px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
-              {getUIText('quickLoad')}
+          {/* Quick Load Section */}
+          <div style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{ 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '12px', 
+              color: '#1f2937',
+              margin: '0 0 12px 0'
+            }}>
+              Popular Works
             </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
               <button
                 onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/romeo-and-juliet_TXT_FolgerShakespeare.txt', 'Romeo and Juliet')}
                 style={{
-                  padding: '6px 12px',
+                  padding: '8px 12px',
                   backgroundColor: '#3b82f6',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
+                  fontSize: '13px',
+                  fontWeight: '500'
                 }}
               >
                 Romeo & Juliet
@@ -1000,14 +1126,14 @@ export default function ShakespeareExplainer() {
               <button
                 onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/macbeth_TXT_FolgerShakespeare.txt', 'Macbeth')}
                 style={{
-                  padding: '6px 12px',
+                  padding: '8px 12px',
                   backgroundColor: '#3b82f6',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
+                  fontSize: '13px',
+                  fontWeight: '500'
                 }}
               >
                 Macbeth
@@ -1015,118 +1141,227 @@ export default function ShakespeareExplainer() {
               <button
                 onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/hamlet_TXT_FolgerShakespeare.txt', 'Hamlet')}
                 style={{
-                  padding: '6px 12px',
+                  padding: '8px 12px',
                   backgroundColor: '#3b82f6',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
+                  fontSize: '13px',
+                  fontWeight: '500'
                 }}
               >
                 Hamlet
               </button>
+              <button
+                onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/king-lear_TXT_FolgerShakespeare.txt', 'King Lear')}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500'
+                }}
+              >
+                King Lear
+              </button>
+              <button
+                onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/the-tempest_TXT_FolgerShakespeare.txt', 'The Tempest')}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500'
+                }}
+              >
+                The Tempest
+              </button>
             </div>
-            <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
-              Need more plays? Visit{' '}
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6b7280',
+              padding: '8px 12px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '4px',
+              textAlign: 'center'
+            }}>
+              More works available at{' '}
               <a 
                 href="https://www.folger.edu/explore/shakespeares-works/"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: '500' }}
               >
-                Folger Shakespeare Library
+                Folger Library
               </a>
-              {' '}to find and download additional works.
             </div>
           </div>
           
-          <label style={{ 
-            display: 'block',
-            marginBottom: '4px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            color: '#374151'
+          {/* Upload Section */}
+          <div style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '20px'
           }}>
-            {getUIText('uploadFile')}
-          </label>
-          <input
-            type="file"
-            accept="text/plain,.txt"
-            onChange={handleFileUpload}
-            style={{ 
-              display: 'block',
-              width: '100%',
-              marginBottom: '8px',
-              padding: '8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
-            }}
-          />
-          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
-            {getUIText('uploadDesc')}
-          </div>
-          
-          <label style={{ 
-            display: 'block',
-            marginBottom: '4px',
-            marginTop: '16px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            color: '#374151'
-          }}>
-            {getUIText('loadFromURL')}
-          </label>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <h3 style={{ 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '12px', 
+              color: '#1f2937',
+              margin: '0 0 12px 0'
+            }}>
+              Upload Your Text
+            </h3>
             <input
-              type="url"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              placeholder={getUIText('urlPlaceholder')}
-              disabled={isLoading}
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '12px'
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  loadTextFromURL();
-                }
+              type="file"
+              accept="text/plain,.txt"
+              onChange={handleFileUpload}
+              style={{ 
+                display: 'block',
+                width: '100%',
+                marginBottom: '8px',
+                padding: '12px',
+                border: '2px dashed #d1d5db',
+                borderRadius: '6px',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#374151'
               }}
             />
-            <button
-              onClick={loadTextFromURL}
-              disabled={isLoading || !urlInput.trim()}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: '#059669',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                opacity: (isLoading || !urlInput.trim()) ? 0.5 : 1
-              }}
-            >
-              {getUIText('loadButton')}
-            </button>
-          </div>
-          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>
-            {getUIText('urlDesc')}
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6b7280',
+              textAlign: 'center',
+              fontStyle: 'italic'
+            }}>
+              Supports .txt files • Auto-detects author & language
+            </div>
           </div>
           
-          <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
-            <div style={{ color: '#374151', fontWeight: 'bold', marginBottom: '4px' }}>
-              {getUIText('pasteText')}
+          {/* URL Loading Section */}
+          <div style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{ 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '12px', 
+              color: '#1f2937',
+              margin: '0 0 12px 0'
+            }}>
+              Load from URL
+            </h3>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="Enter URL to text file..."
+                disabled={isLoading}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    loadTextFromURL();
+                  }
+                }}
+              />
+              <button
+                onClick={loadTextFromURL}
+                disabled={isLoading || !urlInput.trim()}
+                style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  opacity: (isLoading || !urlInput.trim()) ? 0.5 : 1
+                }}
+              >
+                Load
+              </button>
             </div>
+            <div style={{
+              padding: '10px 12px',
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #d1fae5',
+              borderRadius: '4px',
+              marginBottom: '8px'
+            }}>
+              <div style={{ fontSize: '12px', fontWeight: '500', color: '#065f46', marginBottom: '4px' }}>
+                Try this example:
+              </div>
+              <button
+                onClick={() => {
+                  setUrlInput('https://shakespeare-explainer.vercel.app/le-misanthrope-moliere.txt');
+                  setTimeout(() => loadTextFromURL(), 100);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#059669',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  textDecoration: 'underline',
+                  padding: 0,
+                  fontWeight: '500'
+                }}
+              >
+                Le Misanthrope by Molière
+              </button>
+            </div>
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6b7280',
+              textAlign: 'center',
+              fontStyle: 'italic'
+            }}>
+              Project Gutenberg, GitHub, or any public text URL
+            </div>
+          </div>
+          
+          {/* Paste Text Section */}
+          <div style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '16px'
+          }}>
+            <h3 style={{ 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '12px', 
+              color: '#1f2937',
+              margin: '0 0 12px 0'
+            }}>
+              Paste Text
+            </h3>
             <textarea
-              placeholder={getUIText('pasteHere')}
+              placeholder="Paste classic literature text here..."
               onChange={(e) => {
                 const text = e.target.value;
                 if (text.trim()) {
@@ -1140,19 +1375,42 @@ export default function ShakespeareExplainer() {
                   });
                   
                   setChatMessages([{ role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]);
+                  
+                  // Auto-scroll to the beginning of the loaded text
+                  setTimeout(() => {
+                    const leftPanel = document.querySelector('.left-panel');
+                    const firstTextLine = leftPanel?.querySelector('[data-line-index="0"]');
+                    if (firstTextLine) {
+                      firstTextLine.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                      });
+                    }
+                  }, 300);
                 }
               }}
               style={{
                 width: '100%',
-                height: '100px',
-                padding: '8px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '12px',
-                backgroundColor: '#fefdf0',
-                color: 'black'
+                height: '120px',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                backgroundColor: 'white',
+                color: '#374151',
+                resize: 'vertical',
+                fontFamily: 'inherit'
               }}
             />
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6b7280',
+              textAlign: 'center',
+              fontStyle: 'italic',
+              marginTop: '8px'
+            }}>
+              Copy and paste from any source
+            </div>
           </div>
         </div>
         <div 
@@ -1252,42 +1510,135 @@ export default function ShakespeareExplainer() {
         backgroundColor: 'white',
         color: 'black'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
           <h2 style={{ fontWeight: 'bold', margin: 0 }}>{getUIText('shakespeareChat')}</h2>
-          {chatMessages.length > 0 && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={saveChatToFile}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-              >
-{getUIText('saveChat')}
-              </button>
-              <button
-                onClick={getChatSummary}
-                disabled={isLoading}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: '#8b5cf6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  opacity: isLoading ? 0.5 : 1
-                }}
-              >
-{getUIText('summary')}
-              </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Language preference controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              {/* My Language Setting */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '10px', color: '#6b7280' }}>My Language:</span>
+                <select
+                  value={myLanguage}
+                  onChange={(e) => setMyLanguage(e.target.value)}
+                  style={{
+                    padding: '1px 4px',
+                    fontSize: '10px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '3px',
+                    backgroundColor: 'white',
+                    color: '#374151'
+                  }}
+                >
+                  <option value="en">🇬🇧 English</option>
+                  <option value="fr">🇫🇷 French</option>
+                  <option value="de">🇩🇪 German</option>
+                  <option value="es">🇪🇸 Spanish</option>
+                  <option value="it">🇮🇹 Italian</option>
+                </select>
+              </div>
+              
+              {/* Response Language Setting */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '10px', color: '#6b7280' }}>Respond in:</span>
+                <select
+                  value={responseLanguage}
+                  onChange={(e) => setResponseLanguage(e.target.value)}
+                  style={{
+                    padding: '1px 4px',
+                    fontSize: '10px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '3px',
+                    backgroundColor: 'white',
+                    color: '#374151'
+                  }}
+                >
+                  <option value="match">📚 Text Language</option>
+                  <option value="native">🏠 My Language</option>
+                </select>
+              </div>
+              
+              {/* Language reset button */}
+              {uiLanguage !== 'en' && (
+                <button
+                  onClick={() => {
+                    setUiLanguage('en');
+                    setResponseLanguage('match');
+                    setMyLanguage('en');
+                  }}
+                  style={{
+                    padding: '1px 4px',
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    fontSize: '9px'
+                  }}
+                  title="Reset all language settings to English"
+                >
+                  Reset
+                </button>
+              )}
+              
+              {/* Resubmit button - show when there's a last message and not loading */}
+              {lastUserMessage && chatMessages.length > 0 && (
+                <button
+                  onClick={resubmitLastMessage}
+                  disabled={isLoading}
+                  style={{
+                    padding: '2px 6px',
+                    backgroundColor: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '10px',
+                    opacity: isLoading ? 0.5 : 1
+                  }}
+                  title="Resubmit last question with current language preference"
+                >
+                  🔄 Resubmit
+                </button>
+              )}
             </div>
-          )}
+            
+            {chatMessages.length > 0 && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={saveChatToFile}
+                  style={{
+                    padding: '4px 8px',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+{getUIText('saveChat')}
+                </button>
+                <button
+                  onClick={getChatSummary}
+                  disabled={isLoading}
+                  style={{
+                    padding: '4px 8px',
+                    backgroundColor: '#8b5cf6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    opacity: isLoading ? 0.5 : 1
+                  }}
+                >
+{getUIText('summary')}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Chat messages */}
