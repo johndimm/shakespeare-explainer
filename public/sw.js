@@ -1,10 +1,10 @@
-const CACHE_NAME = 'shakespeare-explainer-v1';
+const CACHE_NAME = 'shakespeare-explainer-v2';
 const urlsToCache = [
   '/',
   '/api/chat',
   '/static/js/bundle.js',
   '/static/css/main.css',
-  '/manifest.json'
+  '/app-manifest.json'
 ];
 
 // Install event
