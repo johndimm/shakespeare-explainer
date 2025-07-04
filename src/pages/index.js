@@ -16,6 +16,9 @@ export default function ShakespeareExplainer() {
   const [isResizing, setIsResizing] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
   const [showButtons, setShowButtons] = useState(false);
+  const [highlightedLines, setHighlightedLines] = useState(new Set());
+  const [showOutline, setShowOutline] = useState(false);
+  const [outline, setOutline] = useState([]);
 
   // Download and load a play directly
   const loadPlay = async (url, title) => {
@@ -34,6 +37,7 @@ export default function ShakespeareExplainer() {
       const lines = data.text.split('\n').filter(line => line.trim() !== '');
       
       setUploadedText(lines);
+      setOutline(generateOutline(lines));
       setChatMessages([{ role: 'system', content: `${title} loaded! Click or drag to select lines for explanation.` }]);
     } catch (error) {
       console.error('Error loading play:', error);
@@ -285,6 +289,7 @@ export default function ShakespeareExplainer() {
           const text = e.target.result;
           const lines = text.split('\n').filter(line => line.trim() !== '');
           setUploadedText(lines);
+          setOutline(generateOutline(lines));
           setChatMessages([{ role: 'system', content: 'File uploaded! Click or drag to select lines for explanation.' }]);
         } catch (err) {
           console.error('Error reading file:', err);
@@ -359,9 +364,10 @@ export default function ShakespeareExplainer() {
     
     const textToExplain = selectedLines.map(item => item.line).join('\n');
     const userMessage = `Explain: "${textToExplain}"`;
+    const lineIndices = selectedLines.map(item => item.index);
     
-    // Add user message to chat
-    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    // Add user message to chat with line indices for linking
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage, lineIndices }]);
     // Scroll to show user input immediately
     setTimeout(() => {
       const userMessages = document.querySelectorAll('[data-role="user"]');
@@ -435,6 +441,147 @@ export default function ShakespeareExplainer() {
     setIsLoading(false);
   };
 
+  // Generate outline from text
+  const generateOutline = (lines) => {
+    const outlineItems = [];
+    
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      
+      // Shakespeare play patterns - more specific matching
+      if (trimmed.match(/^ACT\s+[IVX]+/i)) {
+        outlineItems.push({
+          type: 'act',
+          title: trimmed,
+          index: index,
+          level: 1
+        });
+      } else if (trimmed.match(/^SCENE\s+[IVX]+/i)) {
+        // Look for scene direction on next line
+        const sceneDirection = getSceneDirection(lines, index + 1);
+        outlineItems.push({
+          type: 'scene',
+          title: trimmed,
+          direction: sceneDirection,
+          index: index,
+          level: 2
+        });
+      } else if (trimmed.match(/^(PROLOGUE|EPILOGUE|CHORUS)/i)) {
+        outlineItems.push({
+          type: 'special',
+          title: trimmed,
+          index: index,
+          level: 1
+        });
+      } else if (trimmed.match(/^Act\s+[IVX0-9]+/i)) {
+        // Handle "Act I", "Act 1" format
+        outlineItems.push({
+          type: 'act',
+          title: trimmed,
+          index: index,
+          level: 1
+        });
+      } else if (trimmed.match(/^Scene\s+[IVX0-9]+/i)) {
+        // Handle "Scene I", "Scene 1" format
+        const sceneDirection = getSceneDirection(lines, index + 1);
+        outlineItems.push({
+          type: 'scene',
+          title: trimmed,
+          direction: sceneDirection,
+          index: index,
+          level: 2
+        });
+      } else if (trimmed.match(/^(Act\s+[IVX0-9]+,?\s*Scene\s+[IVX0-9]+)/i)) {
+        // Handle "Act I, Scene I" format
+        const sceneDirection = getSceneDirection(lines, index + 1);
+        outlineItems.push({
+          type: 'scene',
+          title: trimmed,
+          direction: sceneDirection,
+          index: index,
+          level: 2
+        });
+      }
+    });
+    
+    return outlineItems;
+  };
+
+  // Helper function to get scene direction from the next line(s)
+  const getSceneDirection = (lines, startIndex) => {
+    // Check the next few lines for scene directions
+    for (let i = startIndex; i < Math.min(startIndex + 5, lines.length); i++) {
+      const line = lines[i]?.trim();
+      if (!line) continue;
+      
+      // Skip character names and stage directions
+      if (line.match(/^[A-Z][A-Z\s]+$/)) {
+        // Check if this looks like a character name (common character patterns)
+        const characterPatterns = /^(LADY|LORD|FIRST|SECOND|THIRD|OLD|YOUNG|DUKE|KING|QUEEN|PRINCE|PRINCESS|SIR|CAPTAIN|SERVANT|MESSENGER|SOLDIER|GUARD|DOCTOR|NURSE|MURDERER|WITCH|SPIRIT|GHOST|CHORUS)\b/;
+        const singleName = /^[A-Z]+$/;
+        
+        // Skip if it's likely a character name
+        if (characterPatterns.test(line) || singleName.test(line) || line.split(/\s+/).length <= 3) {
+          continue;
+        }
+      }
+      
+      // Look for actual location descriptions
+      const hasLocationWords = /\b(CASTLE|PALACE|ROOM|CHAMBER|HALL|COURT|GARDEN|ORCHARD|STREET|SQUARE|FIELD|FOREST|BATTLEFIELD|HEATH|PLAIN|TOWER|WALL|GATE|BRIDGE|RIVER|HILL|MOUNTAIN|CAVE|TOMB|CHURCH|MONASTERY|TENT|CAMP|HOUSE|MANOR|VILLA|BALCONY|TERRACE|YARD|KITCHEN|DUNGEON|PRISON|THRONE|BANQUET|FEAST|MARKET|FAIR|TAVERN|INN|SHIP|DECK|SHORE|BEACH|ISLAND|WOOD|GLADE|CLEARING|PATH|ROAD|CROSSROADS|VERONA|MANTUA|VENICE|ROME|ATHENS|SCOTLAND|ENGLAND|FRANCE|DENMARK|ITALY|SICILY|BOHEMIA|ILLYRIA)\b/i;
+      const hasLocationIndicators = /\b(IN|AT|NEAR|OUTSIDE|INSIDE|BEFORE|WITHIN|THE SAME|ANOTHER|A ROOM|A STREET|A FIELD|THE COURT|THE PALACE)\b/i;
+      const endsWithPeriod = line.endsWith('.');
+      const hasParentheses = line.includes('(') && line.includes(')');
+      const hasArticles = /\b(THE|A|AN)\b/i.test(line);
+      
+      // Check if it looks like a location description
+      if ((hasLocationWords || hasLocationIndicators || endsWithPeriod || hasParentheses || hasArticles) && 
+          line.length > 8 && line.length < 120 && 
+          !line.match(/^[A-Z]+:/) && // Not a character name with colon
+          !line.match(/^(Enter|Exit|Exeunt|Re-enter)/i) && // Not stage directions
+          !line.match(/^(ACT|SCENE)/i)) { // Not act/scene headers
+        
+        const words = line.split(/\s+/);
+        if (words.length >= 3 && words.length <= 20) {
+          return line;
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  // Jump to text location in left panel
+  const jumpToText = (lineIndices) => {
+    if (!lineIndices || lineIndices.length === 0) return;
+    
+    // Clear existing highlights
+    setHighlightedLines(new Set());
+    
+    // Highlight the lines
+    const highlightSet = new Set(lineIndices);
+    setHighlightedLines(highlightSet);
+    
+    // Scroll to the first line
+    const firstIndex = Math.min(...lineIndices);
+    const lineElement = document.querySelector(`[data-line-index="${firstIndex}"]`);
+    if (lineElement) {
+      lineElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center'
+      });
+    }
+    
+    // Clear highlight after a delay
+    setTimeout(() => {
+      setHighlightedLines(new Set());
+    }, 3000);
+  };
+
+  // Jump to specific line index
+  const jumpToLine = (lineIndex) => {
+    jumpToText([lineIndex]);
+  };
+
   // Just scroll down a little to reveal some response
   const scrollToOptimalPosition = () => {
     setTimeout(() => {
@@ -506,7 +653,87 @@ export default function ShakespeareExplainer() {
           />
         </div>
         <div style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontWeight: 'bold', marginBottom: '12px', color: '#374151' }}>📚 Shakespeare Text</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h2 style={{ fontWeight: 'bold', margin: 0, color: '#374151' }}>📚 Shakespeare Text</h2>
+            {outline.length > 0 && (
+              <button
+                onClick={() => setShowOutline(!showOutline)}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: showOutline ? '#dc2626' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                {showOutline ? '📖 Hide Outline' : '📋 Show Outline'}
+              </button>
+            )}
+          </div>
+          
+          {/* Outline Panel */}
+          {showOutline && outline.length > 0 && (
+            <div style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: '12px',
+              marginBottom: '16px',
+              maxHeight: '300px',
+              overflowY: 'auto'
+            }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>
+                📑 Text Outline
+              </h3>
+              {outline.map((item, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => jumpToLine(item.index)}
+                  style={{
+                    padding: '4px 8px',
+                    marginLeft: `${(item.level - 1) * 16}px`,
+                    marginBottom: '2px',
+                    backgroundColor: 'white',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    border: '1px solid #e5e7eb',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = '#e0e7ff';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'white';
+                  }}
+                >
+                  <span style={{ 
+                    color: item.type === 'act' ? '#dc2626' : 
+                           item.type === 'scene' ? '#7c3aed' : 
+                           item.type === 'special' ? '#059669' : '#6b7280',
+                    fontWeight: item.level <= 2 ? 'bold' : 'normal'
+                  }}>
+                    {item.type === 'act' ? '🎭' : 
+                     item.type === 'scene' ? '🎪' : 
+                     item.type === 'special' ? '⭐' : '📍'} {item.title}
+                    {item.direction && (
+                      <span style={{ 
+                        fontSize: '10px', 
+                        fontWeight: 'normal',
+                        color: '#6b7280',
+                        marginLeft: '6px',
+                        fontStyle: 'italic'
+                      }}>
+                        {item.direction}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ marginBottom: '12px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
               🎭 Quick Load Popular Plays
@@ -609,6 +836,7 @@ export default function ShakespeareExplainer() {
                 if (text.trim()) {
                   const lines = text.split('\n').filter(line => line.trim() !== '');
                   setUploadedText(lines);
+                  setOutline(generateOutline(lines));
                   setChatMessages([{ role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]);
                 }
               }}
@@ -632,12 +860,14 @@ export default function ShakespeareExplainer() {
         >
           {uploadedText.map((line, idx) => {
             const isSelected = selectedLines.some(item => item.index === idx);
+            const isHighlighted = highlightedLines.has(idx);
             const isLastSelected = selectedLines.length > 0 && showButtons &&
               idx === Math.max(...selectedLines.map(item => item.index));
             
             return (
               <div key={idx}>
                 <p
+                  data-line-index={idx}
                   onMouseDown={!isMobile ? () => handleMouseDown(line, idx) : undefined}
                   onMouseEnter={!isMobile ? () => handleMouseEnter(line, idx) : undefined}
                   onMouseMove={!isMobile ? () => handleMouseMove(line, idx) : undefined}
@@ -649,16 +879,17 @@ export default function ShakespeareExplainer() {
                   style={{
                     cursor: 'pointer',
                     padding: '4px',
-                    backgroundColor: isSelected ? '#3b82f6' : 'white',
-                    color: isSelected ? 'white' : 'black',
+                    backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : 'white',
+                    color: isSelected || isHighlighted ? 'white' : 'black',
                     borderRadius: '2px',
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    transition: 'background-color 0.2s ease'
                   }}
                   onMouseOver={!isMobile ? (e) => {
-                    if (!isSelected && !isDragging) e.target.style.backgroundColor = '#fde68a';
+                    if (!isSelected && !isHighlighted && !isDragging) e.target.style.backgroundColor = '#fde68a';
                   } : undefined}
                   onMouseOut={!isMobile ? (e) => {
-                    if (!isSelected) {
+                    if (!isSelected && !isHighlighted) {
                       e.target.style.backgroundColor = 'white';
                       e.target.style.color = 'black';
                     }
@@ -788,7 +1019,26 @@ export default function ShakespeareExplainer() {
               }}>
                 {msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Shakespeare Expert' : 'System'}
               </div>
-              <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+              <div 
+                style={{ 
+                  whiteSpace: 'pre-wrap',
+                  cursor: msg.role === 'user' && msg.lineIndices ? 'pointer' : 'default'
+                }}
+                onClick={msg.role === 'user' && msg.lineIndices ? () => jumpToText(msg.lineIndices) : undefined}
+                title={msg.role === 'user' && msg.lineIndices ? 'Click to jump to original text' : undefined}
+              >
+                {msg.content}
+                {msg.role === 'user' && msg.lineIndices && (
+                  <span style={{ 
+                    fontSize: '10px', 
+                    color: '#666', 
+                    marginLeft: '8px',
+                    fontStyle: 'italic'
+                  }}>
+                    📍 Click to jump to text
+                  </span>
+                )}
+              </div>
             </div>
           ))}
           {isLoading && (
