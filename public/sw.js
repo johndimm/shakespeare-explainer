@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shakespeare-explainer-v3';
+const CACHE_NAME = 'shakespeare-explainer-v4';
 const urlsToCache = [
   '/',
   '/app-manifest.json'
@@ -19,6 +19,14 @@ self.addEventListener('install', (event) => {
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
+  // Skip caching for development files
+  if (event.request.url.includes('localhost') || 
+      event.request.url.includes('_next') || 
+      event.request.url.includes('webpack') ||
+      event.request.url.includes('__nextjs')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -41,6 +49,9 @@ self.addEventListener('fetch', (event) => {
             });
 
           return response;
+        }).catch(() => {
+          // Return a fallback or just pass through
+          return fetch(event.request);
         });
       })
   );
