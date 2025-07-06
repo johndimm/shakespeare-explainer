@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { AuthService, UsageService } from '../../lib/auth';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -34,6 +35,28 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Check authentication
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const decoded = AuthService.verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  // Temporarily skip usage limits for testing
+  // const usageCheck = await UsageService.checkUsageLimit(decoded.userId, 'explanations');
+  // if (!usageCheck.allowed) {
+  //   return res.status(429).json({ 
+  //     error: usageCheck.reason,
+  //     current: usageCheck.current,
+  //     limit: usageCheck.limit,
+  //     isFirstDay: usageCheck.isFirstDay
+  //   });
+  // }
+
   const { line } = req.body;
 
   if (!line) {
@@ -45,6 +68,12 @@ export default async function handler(req, res) {
 
   // Get LLM explanation
   const explanation = await explainWithLLM(cleanLine);
+
+  // Temporarily skip usage logging for testing
+  // await UsageService.logUsage(decoded.userId, 'explanations', {
+  //   line_length: cleanLine.length,
+  //   line_preview: cleanLine.substring(0, 100)
+  // });
 
   res.status(200).json({ explanation });
 }
