@@ -24,7 +24,6 @@ export default function ShakespeareExplainer() {
   const [lastClickedIndex, setLastClickedIndex] = useState(null);
   const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
   const [isResizing, setIsResizing] = useState(false);
-  const [scrollPosition, setScrollPosition] = useState(0);
   const [showButtons, setShowButtons] = useState(false);
   const [highlightedLines, setHighlightedLines] = useState(new Set());
   const [showOutline, setShowOutline] = useState(false);
@@ -290,98 +289,41 @@ export default function ShakespeareExplainer() {
     setIsLoading(false);
   };
 
-  // Handle scrollbar interaction (scroll or resize)
-  const handleScrollbarStart = (e) => {
+  // Handle divider resizing only
+  const handleDividerStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
     const getClientX = (e) => e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX);
-    const getClientY = (e) => e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY);
-    
     const startX = getClientX(e);
-    const startY = getClientY(e);
-    const scrollbarElement = e.currentTarget;
-    const startScrollbarRect = scrollbarElement.getBoundingClientRect();
-    let isDragging = false;
-    let dragThreshold = 5; // pixels to move before considering it a drag
     
     const handleMove = (e) => {
       e.preventDefault();
       const currentX = getClientX(e);
-      const currentY = getClientY(e);
-      const deltaX = Math.abs(currentX - startX);
-      const deltaY = Math.abs(currentY - startY);
       
-      if (!isDragging && (deltaX > dragThreshold || deltaY > dragThreshold)) {
-        // On mobile, prioritize resizing. On desktop, check direction
-        if (isMobile) {
-          isDragging = 'resize';
-        } else {
-          // Determine if this is horizontal (resize) or vertical (scroll) drag
-          if (deltaX > deltaY) {
-            isDragging = 'resize';
-          } else {
-            isDragging = 'scroll';
-          }
-        }
-      }
+      // Handle panel resizing with direct DOM manipulation for smoothness
+      const containerWidth = window.innerWidth;
+      const newLeftWidth = (currentX / containerWidth) * 100;
+      const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
       
-      if (isDragging === 'resize') {
-        // Handle panel resizing with direct DOM manipulation for smoothness
-        const containerWidth = window.innerWidth;
-        const newLeftWidth = (currentX / containerWidth) * 100;
-        const constrainedWidth = Math.min(Math.max(newLeftWidth, 20), 80);
-        
-        // Update DOM directly for smooth performance
-        const leftPanel = document.querySelector('.left-panel');
-        const rightPanel = leftPanel.nextElementSibling;
-        const scrollbar = scrollbarElement;
-        
-        if (leftPanel && rightPanel && scrollbar) {
-          leftPanel.style.width = `${constrainedWidth}%`;
-          rightPanel.style.width = `${100 - constrainedWidth}%`;
-          scrollbar.style.right = `${100 - constrainedWidth}%`;
-        }
-      } else if (isDragging === 'scroll') {
-        // Handle scrolling
-        const scrollContainer = document.querySelector('.left-panel');
-        const scrollbarRect = scrollbarElement.getBoundingClientRect();
-        const clickY = currentY - scrollbarRect.top;
-        const scrollbarHeight = scrollbarRect.height;
-        const scrollHeight = scrollContainer.scrollHeight;
-        const viewHeight = scrollContainer.clientHeight;
-        
-        const scrollRatio = Math.max(0, Math.min(1, clickY / scrollbarHeight));
-        const maxScrollTop = scrollHeight - viewHeight;
-        const targetScrollTop = scrollRatio * maxScrollTop;
-        
-        scrollContainer.scrollTop = targetScrollTop;
-        setScrollPosition(scrollRatio);
+      // Update DOM directly for smooth performance
+      const leftPanel = document.querySelector('.left-panel');
+      const rightPanel = leftPanel.nextElementSibling;
+      const divider = e.currentTarget;
+      
+      if (leftPanel && rightPanel && divider) {
+        leftPanel.style.width = `${constrainedWidth}%`;
+        rightPanel.style.width = `${100 - constrainedWidth}%`;
+        divider.style.right = `${100 - constrainedWidth}%`;
       }
     };
     
     const handleEnd = (e) => {
-      if (!isDragging) {
-        // This was a simple click, handle as scroll positioning
-        const scrollContainer = document.querySelector('.left-panel');
-        const clickY = startY - startScrollbarRect.top;
-        const scrollbarHeight = startScrollbarRect.height;
-        const scrollHeight = scrollContainer.scrollHeight;
-        const viewHeight = scrollContainer.clientHeight;
-        
-        const scrollRatio = Math.max(0, Math.min(1, clickY / scrollbarHeight));
-        const maxScrollTop = scrollHeight - viewHeight;
-        const targetScrollTop = scrollRatio * maxScrollTop;
-        
-        scrollContainer.scrollTop = targetScrollTop;
-        setScrollPosition(scrollRatio);
-      } else if (isDragging === 'resize') {
-        // Sync React state with final DOM state after resize
-        const leftPanel = document.querySelector('.left-panel');
-        if (leftPanel) {
-          const currentWidth = parseFloat(leftPanel.style.width);
-          setLeftPanelWidth(currentWidth);
-        }
+      // Sync React state with final DOM state after resize
+      const leftPanel = document.querySelector('.left-panel');
+      if (leftPanel) {
+        const currentWidth = parseFloat(leftPanel.style.width);
+        setLeftPanelWidth(currentWidth);
       }
       
       document.removeEventListener('mousemove', handleMove);
@@ -400,19 +342,7 @@ export default function ShakespeareExplainer() {
     document.body.style.userSelect = 'none';
   };
 
-  // Update scroll position when scrolling
-  const handleScroll = (e) => {
-    const scrollContainer = e.target;
-    const scrollTop = scrollContainer.scrollTop;
-    const scrollHeight = scrollContainer.scrollHeight;
-    const viewHeight = scrollContainer.clientHeight;
-    const maxScrollTop = scrollHeight - viewHeight;
-    
-    if (maxScrollTop > 0) {
-      const ratio = scrollTop / maxScrollTop;
-      setScrollPosition(ratio);
-    }
-  };
+
 
   // Detect mobile device and register service worker
   useEffect(() => {
@@ -1116,7 +1046,6 @@ export default function ShakespeareExplainer() {
       <div 
         className="left-panel"
         ref={leftPanelRef}
-        onScroll={handleScroll}
         style={{ 
           width: `${leftPanelWidth}%`, 
           padding: '16px',
@@ -1127,16 +1056,16 @@ export default function ShakespeareExplainer() {
           position: 'relative'
         }}
       >
-        {/* Custom scrollbar overlay - positioned relative to left panel */}
+        {/* Resizable divider */}
         {(!showUpgradeModal) && (
           <div 
-            onMouseDown={handleScrollbarStart}
-            onTouchStart={handleScrollbarStart}
+            onMouseDown={handleDividerStart}
+            onTouchStart={handleDividerStart}
             style={{
               position: 'fixed',
               right: `${100 - leftPanelWidth}%`,
               top: '0',
-              width: '32px',
+              width: '8px',
               height: '100vh',
               backgroundColor: '#e5e7eb',
               cursor: 'col-resize',
@@ -1158,29 +1087,14 @@ export default function ShakespeareExplainer() {
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '4px',
+              width: '2px',
               height: '40px',
               backgroundImage: `
                 linear-gradient(to bottom, transparent 0px, #9ca3af 2px, #9ca3af 4px, transparent 6px, transparent 8px, #9ca3af 10px, #9ca3af 12px, transparent 14px, transparent 16px, #9ca3af 18px, #9ca3af 20px, transparent 22px, transparent 24px, #9ca3af 26px, #9ca3af 28px, transparent 30px, transparent 32px, #9ca3af 34px, #9ca3af 36px, transparent 38px)
               `,
-              backgroundSize: '4px 4px',
+              backgroundSize: '2px 4px',
               pointerEvents: 'none'
             }} />
-            {/* Scroll position indicator */}
-            <div
-              style={{
-                position: 'absolute',
-                left: '0',
-                width: '100%',
-                height: '8px',
-                top: `${scrollPosition * 100}%`,
-                background: '#3b82f6',
-                borderRadius: '4px',
-                opacity: 0.5,
-                pointerEvents: 'none',
-                transition: 'top 0.2s'
-              }}
-            />
           </div>
         )}
         <div style={{ marginBottom: '16px' }}>
