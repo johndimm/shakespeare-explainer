@@ -10,8 +10,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   // Redirect to Google OAuth
   const handleGoogleRedirect = () => {
     console.log('🔄 Redirecting to Google OAuth...');
-    const currentPort = window.location.port || '3000';
-    const redirectUri = `http://localhost:${currentPort}/api/auth/callback/google`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:${window.location.port || '3000'}`;
+    const redirectUri = `${baseUrl}/api/auth/callback/google`;
     console.log('Using redirect URI:', redirectUri);
     
     const params = new URLSearchParams({
