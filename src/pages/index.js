@@ -204,6 +204,7 @@ export default function ShakespeareExplainer() {
       if (!res.ok) throw new Error('Failed to load text');
       const text = await res.text();
       const lines = text.split('\n').filter(line => line.trim() !== '');
+      console.log(`[DEBUG] Loaded play: ${title}, lines: ${lines.length}`); // Debug log
       handleTextLoaded(lines);
       setOutline(generateOutline(lines));
       setDetectedAuthor('Shakespeare');
