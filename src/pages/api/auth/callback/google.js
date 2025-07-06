@@ -2,6 +2,7 @@ import { OAuth2Client } from 'google-auth-library';
 import prisma from '../../../../lib/db';
 import jwt from 'jsonwebtoken';
 
+// Force deployment update
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 const client = new OAuth2Client(
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
