@@ -2,7 +2,9 @@ import { OAuth2Client } from 'google-auth-library';
 import prisma from '../../../../lib/db';
 import jwt from 'jsonwebtoken';
 
-// Force deployment update
+// Force deployment update - Vercel deployment debug
+console.log('Google callback route loaded at:', new Date().toISOString());
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 const client = new OAuth2Client(
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
