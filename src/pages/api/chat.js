@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     });
     
     const currentUsage = usages.reduce((sum, u) => sum + u.count, 0);
-    const limit = 3; // 3 explanations per hour
+    const limit = 100; // TEMP: Increase for testing, revert to 3 for production
     
     if (currentUsage >= limit) {
       // Find the earliest usage in the window (for next reset)

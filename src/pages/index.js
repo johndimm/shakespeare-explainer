@@ -10,7 +10,7 @@ import React from 'react';
 import { FixedSizeList as List } from 'react-window';
 
 const SINGLE_WORK = process.env.NEXT_PUBLIC_SINGLE_WORK;
-const FREEMIUM_LIMIT = 3;
+const FREEMIUM_LIMIT = 100; // TEMP: Increase for testing, revert to 3 for production
 
 export default function ShakespeareExplainer() {
   const [uploadedText, setUploadedText] = useState([]);
@@ -60,6 +60,12 @@ export default function ShakespeareExplainer() {
   const lastMousePosRef = React.useRef({ x: 0, y: 0 });
   const selectedLinesRef = React.useRef([]);
   const clickedIndexRef = React.useRef(null);
+
+  // Add refs to track mobile selection start
+  const mobileSelectionStartRef = React.useRef(null);
+
+  // Add a ref for the header
+  const headerRef = React.useRef();
 
   const arraysEqual = (a, b) => {
     if (a.length !== b.length) return false;
@@ -503,10 +509,19 @@ export default function ShakespeareExplainer() {
     fetchUsage();
   }, [user, chatMessages.length]);
 
+  // Update listHeight based on header height
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setListHeight(window.innerHeight - 32); // Or your preferred calculation
+    function updateListHeight() {
+      const headerHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
+      setListHeight(window.innerHeight - headerHeight);
     }
+    updateListHeight();
+    window.addEventListener('resize', updateListHeight);
+    window.addEventListener('orientationchange', updateListHeight);
+    return () => {
+      window.removeEventListener('resize', updateListHeight);
+      window.removeEventListener('orientationchange', updateListHeight);
+    };
   }, []);
 
   const handleMobileLineClick = (line, index) => {
@@ -1131,7 +1146,7 @@ ${textToExplain}
         <title>Shakespeare Explainer</title>
       </Head>
 
-      <div style={{ display: 'flex', height: '100vh', fontFamily: 'monospace', fontSize: '14px', minWidth: isMobile ? 'auto' : '1024px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: '100%', fontFamily: 'monospace', fontSize: '14px', minWidth: isMobile ? 'auto' : '1024px', overflow: 'hidden' }}>
         <div
           className="left-panel"
           ref={leftPanelRef}
@@ -1142,11 +1157,11 @@ ${textToExplain}
             backgroundColor: 'white',
             color: 'black',
             position: 'relative',
-            height: '100vh',
+            height: '100%',
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
+            overflow: isMobile ? 'auto' : 'hidden',
           }}
         >
           {showTextInputForms ? (
@@ -1191,26 +1206,133 @@ ${textToExplain}
           ) : (
             <>
               <button style={{ marginBottom: 12, background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer' }} onClick={() => setShowTextInputForms(true)}>Change Text</button>
-              <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <List height={listHeight} itemCount={uploadedText.length} itemSize={lineHeightRef.current} width={'100%'} outerRef={leftPanelRef} style={{ height: '100%', overflowX: 'hidden', background: 'white', flex: 1 }}>
-                  {({ index, style }) => {
-                    const line = uploadedText[index];
-                    const isSelected = selectedLines.some(item => item.index === index);
-                    const isHighlighted = highlightedLines.has(index);
-                    const isLastSelected = selectedLines.length > 0 && showButtons && index === Math.max(...selectedLines.map(item => item.index));
-                    return (
-                      <div key={index} style={style}>
-                        <p ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined} data-line-index={index} onMouseDown={!isMobile ? () => handleMouseDown(line, index) : undefined} style={{ cursor: 'pointer', padding: '4px', backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : 'white', color: isSelected || isHighlighted ? 'white' : 'black', borderRadius: '2px', userSelect: 'none', transition: 'background-color 0.2s ease', minHeight: 24 }}>{line}</p>
-                        {isLastSelected && (
-                          <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
-                            <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
-                            <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }}
-                </List>
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                {isMobile ? (
+                  <div style={{ flex: 1, minHeight: 0, height: '100%', overflowY: 'scroll', background: 'white', WebkitOverflowScrolling: 'touch' }}>
+                    {uploadedText.map((line, index) => {
+                      const isSelected = selectedLines.some(item => item.index === index);
+                      const isHighlighted = highlightedLines.has(index);
+                      const isLastSelected = selectedLines.length > 0 && showButtons && index === Math.max(...selectedLines.map(item => item.index));
+                      return (
+                        <div key={index}>
+                          <p
+                            ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
+                            data-line-index={index}
+                            onTouchStart={() => {
+                              if (mobileSelectionStartRef.current === null) {
+                                mobileSelectionStartRef.current = index;
+                                setSelectedLines([{ line, index }]);
+                                selectedLinesRef.current = [{ line, index }];
+                              } else {
+                                const start = Math.min(mobileSelectionStartRef.current, index);
+                                const end = Math.max(mobileSelectionStartRef.current, index);
+                                const linesToExplain = [];
+                                for (let i = start; i <= end; i++) {
+                                  linesToExplain.push({ line: uploadedText[i], index: i });
+                                }
+                                setSelectedLines(linesToExplain);
+                                selectedLinesRef.current = linesToExplain;
+                                explainSelectedText(linesToExplain);
+                                setTimeout(() => setSelectedLines([]), 100);
+                                mobileSelectionStartRef.current = null;
+                              }
+                            }}
+                            style={{
+                              cursor: 'pointer',
+                              padding: '4px',
+                              backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
+                              color: isSelected || isHighlighted ? 'white' : 'black',
+                              borderRadius: '2px',
+                              userSelect: 'text',
+                              transition: 'background-color 0.2s ease',
+                              minHeight: 24
+                            }}
+                          >
+                            {line}
+                            {mobileSelectionStartRef.current === index && (
+                              <span style={{ marginLeft: 8, background: '#fde68a', color: '#b45309', borderRadius: 4, fontSize: 12, padding: '2px 6px', fontWeight: 600 }}>
+                                Start
+                              </span>
+                            )}
+                          </p>
+                          {isLastSelected && (
+                            <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                              <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
+                              <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <List
+                    height={listHeight}
+                    itemCount={uploadedText.length}
+                    itemSize={lineHeightRef.current}
+                    width={'100%'}
+                    outerRef={leftPanelRef}
+                    style={{ height: '100%', overflowX: 'hidden', background: 'white', flex: 1, touchAction: 'pan-y' }}
+                  >
+                    {({ index, style }) => {
+                      const line = uploadedText[index];
+                      const isSelected = selectedLines.some(item => item.index === index);
+                      const isHighlighted = highlightedLines.has(index);
+                      const isLastSelected = selectedLines.length > 0 && showButtons && index === Math.max(...selectedLines.map(item => item.index));
+                      return (
+                        <div key={index} style={style}>
+                          <p
+                            ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
+                            data-line-index={index}
+                            onMouseDown={!isMobile ? () => handleMouseDown(line, index) : undefined}
+                            onTouchStart={isMobile ? () => {
+                              if (mobileSelectionStartRef.current === null) {
+                                mobileSelectionStartRef.current = index;
+                                setSelectedLines([{ line, index }]);
+                                selectedLinesRef.current = [{ line, index }];
+                              } else {
+                                const start = Math.min(mobileSelectionStartRef.current, index);
+                                const end = Math.max(mobileSelectionStartRef.current, index);
+                                const linesToExplain = [];
+                                for (let i = start; i <= end; i++) {
+                                  linesToExplain.push({ line: uploadedText[i], index: i });
+                                }
+                                setSelectedLines(linesToExplain);
+                                selectedLinesRef.current = linesToExplain;
+                                explainSelectedText(linesToExplain);
+                                setTimeout(() => setSelectedLines([]), 100);
+                                mobileSelectionStartRef.current = null;
+                              }
+                            } : undefined}
+                            style={{
+                              cursor: 'pointer',
+                              padding: '4px',
+                              backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (isMobile && mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
+                              color: isSelected || isHighlighted ? 'white' : 'black',
+                              borderRadius: '2px',
+                              userSelect: isMobile ? 'text' : 'none',
+                              transition: 'background-color 0.2s ease',
+                              minHeight: 24
+                            }}
+                          >
+                            {line}
+                            {isMobile && mobileSelectionStartRef.current === index && (
+                              <span style={{ marginLeft: 8, background: '#fde68a', color: '#b45309', borderRadius: 4, fontSize: 12, padding: '2px 6px', fontWeight: 600 }}>
+                                Start
+                              </span>
+                            )}
+                          </p>
+                          {isLastSelected && (
+                            <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                              <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
+                              <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  </List>
+                )}
               </div>
             </>
           )}
@@ -1219,13 +1341,27 @@ ${textToExplain}
           <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '2px', height: '40px', backgroundImage: `linear-gradient(to bottom, transparent 0px, #9ca3af 2px, #9ca3af 4px, transparent 6px, transparent 8px, #9ca3af 10px, #9ca3af 12px, transparent 14px, transparent 16px, #9ca3af 18px, #9ca3af 20px, transparent 22px, transparent 24px, #9ca3af 26px, #9ca3af 28px, transparent 30px, transparent 32px, #9ca3af 34px, #9ca3af 36px, transparent 38px)`, backgroundSize: '2px 4px', pointerEvents: 'none' }} />
         </div>
         <div className="right-panel" style={{ flex: 1, height: '100vh', overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}>
+          <div
+            ref={headerRef}
+            style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}
+          >
             <a href="/guide" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 500, fontSize: 15 }}>User Guide</a>
             {user && !userLoading && !isPremium && (
               usage >= FREEMIUM_LIMIT ? (
-                <span style={{ color: '#dc2626', fontWeight: 500, fontSize: 13 }}>
-                  You've reached your limit. You'll get 3 more explanations at{' '}
-                  {nextReset ? new Date(nextReset).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'the next hour'}.
+                <span style={{
+                  background: '#fee2e2',
+                  color: '#b91c1c',
+                  borderRadius: 12,
+                  padding: '4px 12px',
+                  fontWeight: 500,
+                  fontSize: 13,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 220,
+                  display: 'inline-block'
+                }}>
+                  You've reached your limit. 3 more explanations at {nextReset ? new Date(nextReset).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'the next hour'}.
                 </span>
               ) : (
                 <span style={{ color: '#2563eb', fontWeight: 500, fontSize: 13 }}>
@@ -1254,11 +1390,21 @@ ${textToExplain}
                 <div style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>{msg.content}</div>
               </div>
             ))}
+            {isLoading && (
+              <div style={{ fontStyle: 'italic', color: '#6b7280', fontSize: 14, marginTop: 8 }}>
+                {detectedAuthor ? `${detectedAuthor} Expert is typing...` : 'Expert is typing...'}
+              </div>
+            )}
           </div>
           <form onSubmit={sendChatMessage} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '8px', background: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
             <input type="text" value={inputMessage} onChange={e => setInputMessage(e.target.value)} placeholder="Ask follow-up questions..." style={{ flex: 1, padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white' }} disabled={isLoading} />
             <button type="submit" disabled={isLoading || !inputMessage.trim()} style={{ padding: '10px 18px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '15px', cursor: isLoading || !inputMessage.trim() ? 'not-allowed' : 'pointer', opacity: isLoading || !inputMessage.trim() ? 0.5 : 1 }}>Send</button>
           </form>
+          {isMobile && mobileSelectionStartRef.current !== null && (
+            <div style={{ textAlign: 'center', color: '#b45309', background: '#fef3c7', fontWeight: 500, fontSize: 14, padding: '6px 0' }}>
+              Tap the end of your selection to explain multiple lines.
+            </div>
+          )}
         </div>
       </div>
       {/* Auth Modal */}
@@ -1281,6 +1427,42 @@ ${textToExplain}
         onClose={() => setShowUpgradeModal(false)}
         message={upgradeMessage}
       />
+      {isMobile && (
+        <SwipeScrollIndicator uploadedText={uploadedText} />
+      )}
+    </>
+  );
+}
+
+function SwipeScrollIndicator({ uploadedText }) {
+  const containerRef = React.useRef();
+  const [show, setShow] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    function checkScroll() {
+      setShow(el.scrollHeight > el.clientHeight + 8); // 8px fudge for rounding
+    }
+    checkScroll();
+    el.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [uploadedText.length]);
+
+  return (
+    <>
+      <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 1 }} />
+      {show && (
+        <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none', zIndex: 2 }}>
+          <span style={{ background: 'rgba(59,130,246,0.9)', color: 'white', borderRadius: 12, padding: '6px 16px', fontSize: 15, fontWeight: 500, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            ⇧ Swipe to scroll ⇩
+          </span>
+        </div>
+      )}
     </>
   );
 }
