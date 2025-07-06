@@ -1,4 +1,7 @@
 import OpenAI from 'openai';
+import jwt from 'jsonwebtoken';
+import { UsageService } from '../../lib/usage';
+import prisma from '../../lib/db';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -7,6 +10,59 @@ const openai = new OpenAI({
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  console.log('Chat API called with body:', req.body);
+
+  // Check authentication
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  console.log('Token decoded successfully:', decoded);
+
+  // Check usage limits using rolling window (3 per hour)
+  try {
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - 60 * 60 * 1000); // 1 hour ago
+    
+    const usages = await prisma.usage.findMany({
+      where: {
+        userId: decoded.userId,
+        type: 'chat',
+        date: { gte: windowStart }
+      },
+      orderBy: { date: 'asc' }
+    });
+    
+    const currentUsage = usages.reduce((sum, u) => sum + u.count, 0);
+    const limit = 3; // 3 explanations per hour
+    
+    if (currentUsage >= limit) {
+      // Find the earliest usage in the window (for next reset)
+      const earliestUsage = usages[0];
+      const nextReset = new Date(new Date(earliestUsage.date).getTime() + 60 * 60 * 1000);
+      
+      return res.status(429).json({ 
+        error: 'Usage limit reached',
+        currentUsage,
+        limit,
+        nextReset,
+        upgradeRequired: true,
+        message: 'You\'ve reached your limit of 3 explanations per hour. Please wait or upgrade to Premium for unlimited access!'
+      });
+    }
+  } catch (error) {
+    console.error('Usage check error:', error);
+    // Continue without usage limits for now
   }
 
   const { messages, responseLanguage, myLanguage } = req.body;
@@ -55,7 +111,17 @@ export default async function handler(req, res) {
       temperature: 0.3,
     });
 
-    return res.status(200).json({ response: completion.choices[0].message.content });
+    const response = completion.choices[0].message.content;
+    
+    // Record usage
+    try {
+      await UsageService.recordUsage(decoded.userId, 'chat');
+    } catch (error) {
+      console.error('Usage recording error:', error);
+      // Continue even if usage recording fails
+    }
+
+    return res.status(200).json({ response });
   } catch (error) {
     console.error('OpenAI API error:', error);
     return res.status(500).json({ error: 'Failed to get response from AI' });
