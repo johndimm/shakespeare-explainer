@@ -51,25 +51,49 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     
-    const params = new URLSearchParams({
+    // Use minimal parameters for mobile to avoid invalid_request
+    const baseParams = {
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'openid email profile',
+      state: `mobile_${isMobile}_t_${Date.now()}`
+    };
+    
+    // Add additional parameters only for desktop
+    const allParams = isMobile ? baseParams : {
+      ...baseParams,
       access_type: 'offline',
       prompt: 'consent',
-      // Add mobile-specific parameters
-      include_granted_scopes: 'true',
-      state: `mobile_${isMobile}_timestamp_${Date.now()}`
-      // Removed deprecated approval_prompt parameter that conflicts with prompt
-    });
+      include_granted_scopes: 'true'
+    };
+    
+    const params = new URLSearchParams(allParams);
     
     console.log('OAuth parameters:', Object.fromEntries(params));
     console.log('Client ID:', process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? 'present' : 'missing');
+    console.log('Is Mobile OAuth:', isMobile);
+    console.log('Using minimal params for mobile:', isMobile);
     
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    // Use the older OAuth endpoint for mobile compatibility
+    const oauthEndpoint = isMobile 
+      ? 'https://accounts.google.com/o/oauth2/auth'  // Older endpoint, more compatible
+      : 'https://accounts.google.com/o/oauth2/v2/auth'; // Newer endpoint
+    
+    const authUrl = `${oauthEndpoint}?${params.toString()}`;
+    console.log('OAuth endpoint:', oauthEndpoint);
     console.log('Full auth URL length:', authUrl.length);
     console.log('Auth URL preview:', authUrl.substring(0, 200) + '...');
+    
+    // Validate critical parameters
+    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      console.error('❌ Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID');
+      return;
+    }
+    if (!redirectUri.includes('http')) {
+      console.error('❌ Invalid redirect URI:', redirectUri);
+      return;
+    }
     
     // Handle mobile Chrome restrictions
     try {

@@ -695,10 +695,16 @@ export default function ShakespeareExplainer() {
       console.log('❌ No lines provided to explain');
       return;
     }
-    if (!user) {
-      console.log('❌ User not signed in');
+    // Check authentication only for desktop, free access on mobile
+    if (!isMobile && !user) {
+      console.log('❌ Desktop user not signed in');
       setChatMessages(prev => [...prev, { role: 'system', content: 'Please sign in to use this feature.' }]);
       return;
+    }
+    if (isMobile) {
+      console.log('📱 Mobile free access mode - no authentication required');
+    } else {
+      console.log('💻 Desktop authenticated access');
     }
     const textToExplain = lines.map(item => item.line).join('\n');
     const userMessage = `Explain the meaning and context of the following lines from Shakespeare. Do not mention the act, scene, or line number.\n\n"""
@@ -721,35 +727,30 @@ ${textToExplain}
     }, 100);
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      console.log('🔑 Making API call with token:', token ? 'present' : 'missing');
-      console.log('🔑 Token length:', token ? token.length : 0);
       console.log('📱 Is mobile:', isMobile);
-      console.log('👤 User state:', user ? 'signed in' : 'not signed in');
-      
-      // Add debug info to chat for mobile users
-      if (isMobile) {
-        setChatMessages(prev => [...prev, { 
-          role: 'system', 
-          content: `🔧 Debug: Making API call (Token: ${token ? 'present' : 'missing'}, User: ${user ? 'signed in' : 'not signed in'})` 
-        }]);
-      }
       
       const requestPayload = { 
         messages: [...chatMessages, { role: 'user', content: userMessage }], 
         responseLanguage: responseLanguage, 
-        myLanguage: myLanguage 
+        myLanguage: myLanguage,
+        freeAccess: isMobile  // Flag for API to bypass auth on mobile only
       };
-      console.log('📤 Request payload:', {
-        messageCount: requestPayload.messages.length,
-        responseLanguage: requestPayload.responseLanguage,
-        myLanguage: requestPayload.myLanguage,
-        lastMessageLength: userMessage.length
-      });
+      
+      // Include auth header only for desktop
+      const headers = { 'Content-Type': 'application/json' };
+      if (!isMobile) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        console.log('💻 Desktop: Using auth token');
+      } else {
+        console.log('📱 Mobile: Free access mode');
+      }
       
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: headers,
         body: JSON.stringify(requestPayload),
       });
       
@@ -842,7 +843,9 @@ ${textToExplain}
   const sendChatMessage = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim() || isLoading) return;
-    if (!user) {
+    
+    // Check authentication only for desktop, free access on mobile
+    if (!isMobile && !user) {
       setChatMessages(prev => [...prev, { role: 'system', content: 'Please sign in to use this feature.' }]);
       return;
     }
@@ -867,18 +870,25 @@ ${textToExplain}
     setIsLoading(true);
     
     try {
-      console.log('sendChatMessage - Sending request with responseLanguage:', responseLanguage);
-      const token = localStorage.getItem('authToken');
+      console.log('sendChatMessage - Mobile:', isMobile, 'ResponseLanguage:', responseLanguage);
+      
+      // Include auth header only for desktop
+      const headers = { 'Content-Type': 'application/json' };
+      if (!isMobile) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: headers,
         body: JSON.stringify({ 
           messages: [...chatMessages, { role: 'user', content: userMessage }],
           responseLanguage: responseLanguage,
-          myLanguage: myLanguage
+          myLanguage: myLanguage,
+          freeAccess: isMobile  // Flag for API to bypass auth on mobile
         }),
       });
       const data = await res.json();
@@ -1710,7 +1720,7 @@ ${textToExplain}
               </button>
             )}
           </div>
-          {!user && !userLoading && (
+          {!isMobile && !user && !userLoading && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
               <button onClick={handleSignIn} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer' }}>Sign In to Chat</button>
             </div>
