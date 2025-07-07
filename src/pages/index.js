@@ -1395,7 +1395,7 @@ ${textToExplain}
                             backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (isMobile && mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
                             color: isSelected || isHighlighted ? 'white' : 'black',
                             borderRadius: '2px',
-                            userSelect: isMobile ? 'text' : 'none',
+                            userSelect: 'text',
                             transition: 'background-color 0.2s ease',
                             minHeight: 24
                           }}
