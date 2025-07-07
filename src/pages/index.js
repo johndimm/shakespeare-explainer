@@ -1234,7 +1234,7 @@ ${textToExplain}
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            overflow: isMobile ? 'visible' : 'hidden',
+            overflow: showTextInputForms ? 'auto' : (isMobile ? 'visible' : 'hidden'),
           }}
         >
           {/* Input Forms always rendered above the text panel when showTextInputForms is true */}
@@ -1273,13 +1273,13 @@ ${textToExplain}
               {/* Paste Text Section */}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Paste Text</h3>
-                <textarea placeholder="Paste classic literature text here..." onChange={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); handleTextLoaded(lines); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages(prev => [...prev, { role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index=\"0\"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} style={{ flex: 1, width: '100%', minHeight: '120px', padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white', color: '#374151', resize: 'none', fontFamily: 'inherit' }} />
+                <textarea placeholder="Paste classic literature text here..." onChange={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); setUploadedText(lines); setOutline(generateOutline(lines)); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages(prev => [...prev, { role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index=\"0\"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} style={{ flex: 1, width: '100%', minHeight: '120px', padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white', color: '#374151', resize: 'none', fontFamily: 'inherit' }} />
                 <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic', marginTop: '8px' }}>Copy and paste from any source</div>
               </div>
             </div>
           )}
           {/* Always show the text panel and chat if there is loaded text */}
-          {uploadedText.length > 0 && (
+          {(() => { console.log('Text panel condition check - uploadedText.length:', uploadedText.length); return uploadedText.length > 0; })() && (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {isMobile ? (
                 <div style={{ flex: 1, minHeight: 0, height: '100%', overflowY: 'scroll', background: 'white', WebkitOverflowScrolling: 'touch' }}>
@@ -1306,8 +1306,7 @@ ${textToExplain}
                               }
                               setSelectedLines(linesToExplain);
                               selectedLinesRef.current = linesToExplain;
-                              explainSelectedText(linesToExplain);
-                              setTimeout(() => setSelectedLines([]), 100);
+                              setShowButtons(true);
                               mobileSelectionStartRef.current = null;
                             }
                           }}
@@ -1373,8 +1372,7 @@ ${textToExplain}
                               }
                               setSelectedLines(linesToExplain);
                               selectedLinesRef.current = linesToExplain;
-                              explainSelectedText(linesToExplain);
-                              setTimeout(() => setSelectedLines([]), 100);
+                              setShowButtons(true);
                               mobileSelectionStartRef.current = null;
                             }
                           } : undefined}
@@ -1419,7 +1417,7 @@ ${textToExplain}
             style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}
           >
             {!showTextInputForms && (
-              <button style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }} onClick={() => setShowTextInputForms(true)}>Change Text</button>
+              <button style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }} onClick={() => { console.log('Change Text clicked, current uploadedText length:', uploadedText.length); setShowTextInputForms(true); }}>Change Text</button>
             )}
             <a href="/guide" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 500, fontSize: 15 }}>User Guide</a>
             {user && !userLoading && !isPremium && (
