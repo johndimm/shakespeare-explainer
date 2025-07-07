@@ -453,6 +453,24 @@ export default function ShakespeareExplainer() {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       const token = url.searchParams.get('token');
+      const error = url.searchParams.get('error');
+      const errorDescription = url.searchParams.get('error_description');
+      
+      // Handle OAuth errors
+      if (error) {
+        console.error('OAuth error:', error, errorDescription);
+        setChatMessages(prev => [...prev, { 
+          role: 'system', 
+          content: `Authentication failed: ${errorDescription || error}. Please try again.` 
+        }]);
+        // Clean up URL
+        url.searchParams.delete('error');
+        url.searchParams.delete('error_description');
+        window.history.replaceState({}, document.title, url.pathname + url.search);
+        setUserLoading(false);
+        return;
+      }
+      
       if (token) {
         console.log('🎉 Google OAuth token received! Processing sign in...');
         localStorage.setItem('authToken', token);
@@ -463,17 +481,29 @@ export default function ShakespeareExplainer() {
         fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` }
         })
-          .then(res => res.json())
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            return res.json();
+          })
           .then(data => {
             if (data.user) {
               console.log('✅ Google sign in successful!', { user: data.user });
               setUser(data.user);
             } else {
-              console.log('❌ Failed to fetch user data after Google sign in');
+              console.log('❌ Failed to fetch user data after Google sign in:', data);
             }
             setUserLoading(false);
           })
-          .catch(() => setUserLoading(false));
+          .catch(error => {
+            console.error('❌ Error fetching user data after Google sign in:', error);
+            // On mobile, sometimes the token might be corrupted, clear it
+            if (isMobile) {
+              localStorage.removeItem('authToken');
+            }
+            setUserLoading(false);
+          });
       } else {
         // If already logged in, fetch user info
         const storedToken = localStorage.getItem('authToken');
