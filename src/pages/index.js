@@ -575,6 +575,7 @@ export default function ShakespeareExplainer() {
   }, []);
 
   const handleMobileLineClick = (line, index) => {
+    console.log('📱 Mobile line click:', line, 'index:', index);
     const currentTime = Date.now();
     const timeDiff = currentTime - lastClickTime;
     
@@ -582,11 +583,15 @@ export default function ShakespeareExplainer() {
     if (lastClickedIndex === index && timeDiff < 500) {
       // Double tap - explain this line immediately and clear selection
       setSelectedLines([]);  // Clear first to avoid showing buttons
+      selectedLinesRef.current = [];  // Keep ref in sync
       setShowButtons(false);
       setTimeout(() => {
-        setSelectedLines([{ line, index }]);
-        explainSelectedText([{ line, index }]);
+        const lineToExplain = [{ line, index }];
+        setSelectedLines(lineToExplain);
+        selectedLinesRef.current = lineToExplain;  // Keep ref in sync
+        explainSelectedText(lineToExplain);
         setSelectedLines([]);  // Clear after submitting
+        selectedLinesRef.current = [];  // Keep ref in sync
       }, 10);
       setLastClickTime(0);
       setLastClickedIndex(null);
@@ -598,6 +603,9 @@ export default function ShakespeareExplainer() {
           ? prev.filter(item => item.index !== index)
           : [...prev, { line, index }].sort((a, b) => a.index - b.index);
         
+        // Update ref to stay in sync with state
+        selectedLinesRef.current = newSelection;
+        
         // Show buttons if we have selections
         setShowButtons(newSelection.length > 0);
         return newSelection;
@@ -608,11 +616,16 @@ export default function ShakespeareExplainer() {
   };
 
   const explainMultipleLines = () => {
-    if (selectedLinesRef.current.length > 0) {
-      explainSelectedText(selectedLinesRef.current);
+    console.log('🔘 explainMultipleLines called, selected lines:', selectedLines.length);
+    
+    if (selectedLines.length > 0) {
+      console.log('✅ Calling explainSelectedText with selected lines');
+      explainSelectedText(selectedLines);
       setSelectedLines([]); // Clear selection after submitting
       setShowButtons(false); // Hide buttons after submitting
       selectedLinesRef.current = [];
+    } else {
+      console.log('❌ No selected lines to explain');
     }
   };
 
@@ -670,8 +683,13 @@ export default function ShakespeareExplainer() {
   };
 
   const explainSelectedText = async (lines) => {
-    if (!lines || lines.length === 0) return;
+    console.log('🔍 explainSelectedText called with', lines.length, 'lines');
+    if (!lines || lines.length === 0) {
+      console.log('❌ No lines provided to explain');
+      return;
+    }
     if (!user) {
+      console.log('❌ User not signed in');
       setChatMessages(prev => [...prev, { role: 'system', content: 'Please sign in to use this feature.' }]);
       return;
     }
@@ -680,9 +698,14 @@ export default function ShakespeareExplainer() {
 ${textToExplain}
 """`;
     const lineIndices = lines.map(item => item.index);
+    console.log('📝 Adding user message to chat');
     // Only show the quote in the chat, not the full prompt
     setChatMessages(prev => [...prev, { role: 'user', content: textToExplain, lineIndices }]);
     setTimeout(() => {
+      const chatContainer = document.getElementById('chat-container');
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
       const userMessages = document.querySelectorAll('[data-role="user"]');
       const lastUserMessage = userMessages[userMessages.length - 1];
       if (lastUserMessage) {
