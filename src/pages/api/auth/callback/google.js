@@ -5,23 +5,42 @@ import jwt from 'jsonwebtoken';
 // Force deployment update - Vercel deployment debug
 console.log('Google callback route loaded at:', new Date().toISOString());
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+// More robust base URL handling for mobile
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  // Default fallback
+  return 'http://localhost:3000';
+};
+
+const baseUrl = getBaseUrl();
+const redirectUri = `${baseUrl}/api/auth/callback/google`;
+
 const client = new OAuth2Client(
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `${baseUrl}/api/auth/callback/google`
+  redirectUri
 );
 
 export default async function handler(req, res) {
-  const { code, state } = req.query;
-  // Print the redirect URI being used
-  const redirectUri = `${baseUrl}/api/auth/callback/google`;
+  const { code, state, error, error_description } = req.query;
+  
+  // Handle OAuth errors from Google
+  if (error) {
+    console.error('OAuth error from Google:', error, error_description);
+    const errorMessage = `OAuth Error: ${error} - ${error_description || 'Authentication failed'}`;
+    return res.redirect(`/?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(error_description || errorMessage)}`);
+  }
+  
+  const isMobile = state && state.includes('mobile=true');
+  console.log('Google OAuth callback - Mobile:', isMobile, 'State:', state);
   console.log('Google OAuth redirect URI:', redirectUri);
-  console.log('OAuth state:', state);
   
   if (!code) {
     console.error('Missing authorization code in callback');
-    return res.status(400).send('Missing code parameter');
+    const errorMsg = 'Missing authorization code - OAuth flow incomplete';
+    return res.redirect(`/?error=missing_code&error_description=${encodeURIComponent(errorMsg)}`);
   }
 
   try {
@@ -48,9 +67,19 @@ export default async function handler(req, res) {
         response: err.response?.data,
         status: err.response?.status,
         redirectUri: redirectUri,
-        code: code ? 'present' : 'missing'
+        code: code ? 'present' : 'missing',
+        isMobile: isMobile
       });
-      return res.status(500).send(`Google token exchange failed: ${err.message}`);
+      
+      // Handle specific error types
+      let errorMessage = err.message;
+      if (err.message.includes('invalid_grant')) {
+        errorMessage = isMobile 
+          ? 'Mobile OAuth failed: Authorization code expired or invalid. This often happens on mobile browsers. Please try signing in again.'
+          : 'Authorization code expired or invalid. Please try signing in again.';
+      }
+      
+      return res.redirect(`/?error=token_exchange_failed&error_description=${encodeURIComponent(errorMessage)}`);
     }
 
     client.setCredentials(tokens);

@@ -11,17 +11,27 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const handleGoogleRedirect = () => {
     console.log('🔄 Redirecting to Google OAuth...');
     
-    // More reliable base URL construction for mobile
+    // Use consistent base URL logic with backend
     let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
     if (!baseUrl) {
+      // Fallback logic that matches backend
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;
       const port = window.location.port;
-      baseUrl = `${protocol}//${hostname}${port && port !== '80' && port !== '443' ? ':' + port : ''}`;
+      
+      // Only add port if it's not standard HTTP/HTTPS ports
+      if (port && port !== '80' && port !== '443') {
+        baseUrl = `${protocol}//${hostname}:${port}`;
+      } else {
+        baseUrl = `${protocol}//${hostname}`;
+      }
     }
     
     const redirectUri = `${baseUrl}/api/auth/callback/google`;
-    console.log('Using redirect URI:', redirectUri);
+    console.log('Frontend OAuth redirect URI:', redirectUri);
+    console.log('Base URL source:', process.env.NEXT_PUBLIC_BASE_URL ? 'env var' : 'window.location');
+    
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     
     const params = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -32,8 +42,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       prompt: 'consent',
       // Add mobile-specific parameters
       include_granted_scopes: 'true',
-      state: `mobile=${/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)}`
+      state: `mobile=${isMobile}&timestamp=${Date.now()}`,
+      // Add parameter that might help with mobile timing
+      ...(isMobile && { approval_prompt: 'force' })
     });
+    
+    console.log('OAuth parameters:', Object.fromEntries(params));
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     console.log('Full auth URL:', authUrl);
