@@ -114,7 +114,7 @@ export default function UserGuide() {
         <meta name="description" content="Complete guide to using the Classic Literature Explainer for Shakespeare, Molière, and other classic authors" />
       </Head>
       
-      <div style={guideStyle}>
+      <div style={{ border: '4px dashed orange', ...guideStyle }}>
         <header style={headerStyle}>
           <h1 style={{ fontSize: '36px', marginBottom: '10px', color: '#1f2937' }}>
             📚 Classic Literature Explainer
@@ -1147,7 +1147,7 @@ export default function UserGuide() {
                   }}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#0284c7', marginBottom: '5px' }}>🎯 Selection Issues</div>
                     <div style={{ fontSize: '12px', marginBottom: '5px' }}>Problem: Can't select text</div>
-                    <div style={{...interfaceBoxStyle, backgroundColor: '#dc2626', color: 'white', fontSize: '10px'}}>📱 Try tapping</div>
+                    <div style={{...interfaceBoxStyle, backgroundColor: '#dc2626', color: 'white', fontSize: '10px'}}>�� Try tapping</div>
                     <div style={{...interfaceBoxStyle, backgroundColor: '#dc2626', color: 'white', fontSize: '10px'}}>🔄 Refresh page</div>
                   </div>
                 </div>

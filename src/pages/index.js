@@ -48,6 +48,8 @@ export default function ShakespeareExplainer() {
 
   const [listHeight, setListHeight] = useState(600); // Default for SSR
 
+  const [isPortrait, setIsPortrait] = React.useState(false);
+
   // Google Docs–style drag selection
   const leftPanelRef = React.useRef();
   const autoScrollInterval = React.useRef(null);
@@ -193,6 +195,7 @@ export default function ShakespeareExplainer() {
   const handleTextLoaded = (lines) => {
     setUploadedText(lines);
     setShowTextInputForms(false);
+    console.log(`[DEBUG] handleTextLoaded called. lines: ${lines.length}, showTextInputForms set to false`);
   };
 
   // Download and load a play directly
@@ -208,7 +211,8 @@ export default function ShakespeareExplainer() {
       handleTextLoaded(lines);
       setOutline(generateOutline(lines));
       setDetectedAuthor('Shakespeare');
-      setChatMessages([{ role: 'system', content: 'Text loaded! Click or drag to select lines for explanation.' }]);
+      // Preserve chat history and just add a system message about the new text
+      setChatMessages(prev => [...prev, { role: 'system', content: 'New text loaded! Click or drag to select lines for explanation.' }]);
     } catch (error) {
       setChatMessages([{ role: 'system', content: 'Failed to load text.' }]);
     } finally {
@@ -229,7 +233,8 @@ export default function ShakespeareExplainer() {
       handleTextLoaded(lines);
       setOutline(generateOutline(lines));
       setDetectedAuthor('Shakespeare');
-      setChatMessages([{ role: 'system', content: 'Text loaded! Click or drag to select lines for explanation.' }]);
+      // Preserve chat history and just add a system message about the new text
+      setChatMessages(prev => [...prev, { role: 'system', content: 'New text loaded! Click or drag to select lines for explanation.' }]);
     } catch (error) {
       setChatMessages([{ role: 'system', content: 'Failed to load text.' }]);
     } finally {
@@ -525,6 +530,15 @@ export default function ShakespeareExplainer() {
     };
   }, []);
 
+  useEffect(() => {
+    function checkOrientation() {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    }
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
+
   const handleMobileLineClick = (line, index) => {
     const currentTime = Date.now();
     const timeDiff = currentTime - lastClickTime;
@@ -667,9 +681,33 @@ ${textToExplain}
           setUiLanguage(detectedLang);
         }
       }
+      
+      // Auto-scroll to show the assistant response
+      setTimeout(() => {
+        const assistantMessages = document.querySelectorAll('[data-role="assistant"]');
+        const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+        if (lastAssistantMessage) {
+          lastAssistantMessage.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start'
+          });
+        }
+      }, 100);
     } catch (err) {
       console.error('Error:', err);
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Failed to get explanation.' }]);
+      
+      // Auto-scroll even for error responses
+      setTimeout(() => {
+        const assistantMessages = document.querySelectorAll('[data-role="assistant"]');
+        const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+        if (lastAssistantMessage) {
+          lastAssistantMessage.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start'
+          });
+        }
+      }, 100);
     }
     setIsLoading(false);
   };
@@ -742,9 +780,33 @@ ${textToExplain}
           setUiLanguage(detectedLang);
         }
       }
+      
+      // Auto-scroll to show the assistant response
+      setTimeout(() => {
+        const assistantMessages = document.querySelectorAll('[data-role="assistant"]');
+        const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+        if (lastAssistantMessage) {
+          lastAssistantMessage.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start'
+          });
+        }
+      }, 100);
     } catch (err) {
       console.error('Error:', err);
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error.' }]);
+      
+      // Auto-scroll even for error responses
+      setTimeout(() => {
+        const assistantMessages = document.querySelectorAll('[data-role="assistant"]');
+        const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+        if (lastAssistantMessage) {
+          lastAssistantMessage.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start'
+          });
+        }
+      }, 100);
     }
     setIsLoading(false);
   };
@@ -1147,26 +1209,37 @@ ${textToExplain}
         <title>Shakespeare Explainer</title>
       </Head>
 
-      <div style={{ display: 'flex', height: '100%', fontFamily: 'monospace', fontSize: '14px', minWidth: isMobile ? 'auto' : '1024px', overflow: 'hidden' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: isMobile && isPortrait ? 'column' : 'row',
+          height: !isMobile ? '100vh' : '100vh', // Always 100vh for desktop and mobile landscape
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          minWidth: isMobile ? 'auto' : '1024px',
+          overflow: 'hidden',
+        }}
+      >
         <div
           className="left-panel"
           ref={leftPanelRef}
           style={{
-            width: `${leftPanelWidth}%`,
+            width: isMobile && isPortrait ? '100%' : `${leftPanelWidth}%`,
+            height: !isMobile ? '100vh' : (isMobile && isPortrait ? '50%' : '100vh'),
             padding: '16px',
             paddingRight: 0,
             backgroundColor: 'white',
             color: 'black',
             position: 'relative',
-            height: '100%',
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            overflow: isMobile ? 'auto' : 'hidden',
+            overflow: isMobile ? 'visible' : 'hidden',
           }}
         >
-          {showTextInputForms ? (
-            <>
+          {/* Input Forms always rendered above the text panel when showTextInputForms is true */}
+          {showTextInputForms && (
+            <div style={{ marginBottom: 16 }}>
               {/* Quick Load Section */}
               <div style={{ marginBottom: '16px', flexShrink: 0 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Popular Works</h3>
@@ -1200,152 +1273,154 @@ ${textToExplain}
               {/* Paste Text Section */}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Paste Text</h3>
-                <textarea placeholder="Paste classic literature text here..." onChange={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); handleTextLoaded(lines); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages([{ role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index="0"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} style={{ flex: 1, width: '100%', minHeight: '120px', padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white', color: '#374151', resize: 'none', fontFamily: 'inherit' }} />
+                <textarea placeholder="Paste classic literature text here..." onChange={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); handleTextLoaded(lines); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages(prev => [...prev, { role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index=\"0\"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} style={{ flex: 1, width: '100%', minHeight: '120px', padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white', color: '#374151', resize: 'none', fontFamily: 'inherit' }} />
                 <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic', marginTop: '8px' }}>Copy and paste from any source</div>
               </div>
-            </>
-          ) : (
-            <>
-              <button style={{ marginBottom: 12, background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer' }} onClick={() => setShowTextInputForms(true)}>Change Text</button>
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                {isMobile ? (
-                  <div style={{ flex: 1, minHeight: 0, height: '100%', overflowY: 'scroll', background: 'white', WebkitOverflowScrolling: 'touch' }}>
-                    {uploadedText.map((line, index) => {
-                      const isSelected = selectedLines.some(item => item.index === index);
-                      const isHighlighted = highlightedLines.has(index);
-                      const isLastSelected = selectedLines.length > 0 && showButtons && index === Math.max(...selectedLines.map(item => item.index));
-                      return (
-                        <div key={index}>
-                          <p
-                            ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
-                            data-line-index={index}
-                            onTouchStart={() => {
-                              if (mobileSelectionStartRef.current === null) {
-                                mobileSelectionStartRef.current = index;
-                                setSelectedLines([{ line, index }]);
-                                selectedLinesRef.current = [{ line, index }];
-                              } else {
-                                const start = Math.min(mobileSelectionStartRef.current, index);
-                                const end = Math.max(mobileSelectionStartRef.current, index);
-                                const linesToExplain = [];
-                                for (let i = start; i <= end; i++) {
-                                  linesToExplain.push({ line: uploadedText[i], index: i });
-                                }
-                                setSelectedLines(linesToExplain);
-                                selectedLinesRef.current = linesToExplain;
-                                explainSelectedText(linesToExplain);
-                                setTimeout(() => setSelectedLines([]), 100);
-                                mobileSelectionStartRef.current = null;
+            </div>
+          )}
+          {/* Always show the text panel and chat if there is loaded text */}
+          {uploadedText.length > 0 && (
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              {isMobile ? (
+                <div style={{ flex: 1, minHeight: 0, height: '100%', overflowY: 'scroll', background: 'white', WebkitOverflowScrolling: 'touch' }}>
+                  {uploadedText.map((line, index) => {
+                    const isSelected = selectedLines.some(item => item.index === index);
+                    const isHighlighted = highlightedLines.has(index);
+                    const isLastSelected = selectedLines.length > 0 && showButtons && index === Math.max(...selectedLines.map(item => item.index));
+                    return (
+                      <div key={index}>
+                        <p
+                          ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
+                          data-line-index={index}
+                          onTouchStart={() => {
+                            if (mobileSelectionStartRef.current === null) {
+                              mobileSelectionStartRef.current = index;
+                              setSelectedLines([{ line, index }]);
+                              selectedLinesRef.current = [{ line, index }];
+                            } else {
+                              const start = Math.min(mobileSelectionStartRef.current, index);
+                              const end = Math.max(mobileSelectionStartRef.current, index);
+                              const linesToExplain = [];
+                              for (let i = start; i <= end; i++) {
+                                linesToExplain.push({ line: uploadedText[i], index: i });
                               }
-                            }}
-                            style={{
-                              cursor: 'pointer',
-                              padding: '4px',
-                              backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
-                              color: isSelected || isHighlighted ? 'white' : 'black',
-                              borderRadius: '2px',
-                              userSelect: 'text',
-                              transition: 'background-color 0.2s ease',
-                              minHeight: 24
-                            }}
-                          >
-                            {line}
-                            {mobileSelectionStartRef.current === index && (
-                              <span style={{ marginLeft: 8, background: '#fde68a', color: '#b45309', borderRadius: 4, fontSize: 12, padding: '2px 6px', fontWeight: 600 }}>
-                                Start
-                              </span>
-                            )}
-                          </p>
-                          {isLastSelected && (
-                            <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
-                              <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
-                              <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
-                            </div>
+                              setSelectedLines(linesToExplain);
+                              selectedLinesRef.current = linesToExplain;
+                              explainSelectedText(linesToExplain);
+                              setTimeout(() => setSelectedLines([]), 100);
+                              mobileSelectionStartRef.current = null;
+                            }
+                          }}
+                          style={{
+                            cursor: 'pointer',
+                            padding: '4px',
+                            backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
+                            color: isSelected || isHighlighted ? 'white' : 'black',
+                            borderRadius: '2px',
+                            userSelect: 'text',
+                            transition: 'background-color 0.2s ease',
+                            minHeight: 24
+                          }}
+                        >
+                          {line}
+                          {mobileSelectionStartRef.current === index && (
+                            <span style={{ marginLeft: 8, background: '#fde68a', color: '#b45309', borderRadius: 4, fontSize: 12, padding: '2px 6px', fontWeight: 600 }}>
+                              Start
+                            </span>
                           )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <List
-                    height={listHeight}
-                    itemCount={uploadedText.length}
-                    itemSize={lineHeightRef.current}
-                    width={'100%'}
-                    outerRef={leftPanelRef}
-                    style={{ height: '100%', overflowX: 'hidden', background: 'white', flex: 1, touchAction: 'pan-y' }}
-                  >
-                    {({ index, style }) => {
-                      const line = uploadedText[index];
-                      const isSelected = selectedLines.some(item => item.index === index);
-                      const isHighlighted = highlightedLines.has(index);
-                      const isLastSelected = selectedLines.length > 0 && showButtons && index === Math.max(...selectedLines.map(item => item.index));
-                      return (
-                        <div key={index} style={style}>
-                          <p
-                            ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
-                            data-line-index={index}
-                            onMouseDown={!isMobile ? () => handleMouseDown(line, index) : undefined}
-                            onTouchStart={isMobile ? () => {
-                              if (mobileSelectionStartRef.current === null) {
-                                mobileSelectionStartRef.current = index;
-                                setSelectedLines([{ line, index }]);
-                                selectedLinesRef.current = [{ line, index }];
-                              } else {
-                                const start = Math.min(mobileSelectionStartRef.current, index);
-                                const end = Math.max(mobileSelectionStartRef.current, index);
-                                const linesToExplain = [];
-                                for (let i = start; i <= end; i++) {
-                                  linesToExplain.push({ line: uploadedText[i], index: i });
-                                }
-                                setSelectedLines(linesToExplain);
-                                selectedLinesRef.current = linesToExplain;
-                                explainSelectedText(linesToExplain);
-                                setTimeout(() => setSelectedLines([]), 100);
-                                mobileSelectionStartRef.current = null;
+                        </p>
+                        {isLastSelected && (
+                          <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                            <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
+                            <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <List
+                  height={listHeight}
+                  itemCount={uploadedText.length}
+                  itemSize={lineHeightRef.current}
+                  width={'100%'}
+                  outerRef={leftPanelRef}
+                  style={{ height: '100%', overflowX: 'hidden', background: 'white', flex: 1, touchAction: 'pan-y' }}
+                >
+                  {({ index, style }) => {
+                    const line = uploadedText[index];
+                    const isSelected = selectedLines.some(item => item.index === index);
+                    const isHighlighted = highlightedLines.has(index);
+                    const isLastSelected = selectedLines.length > 0 && showButtons && index === Math.max(...selectedLines.map(item => item.index));
+                    return (
+                      <div key={index} style={style}>
+                        <p
+                          ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
+                          data-line-index={index}
+                          onMouseDown={!isMobile ? () => handleMouseDown(line, index) : undefined}
+                          onTouchStart={isMobile ? () => {
+                            if (mobileSelectionStartRef.current === null) {
+                              mobileSelectionStartRef.current = index;
+                              setSelectedLines([{ line, index }]);
+                              selectedLinesRef.current = [{ line, index }];
+                            } else {
+                              const start = Math.min(mobileSelectionStartRef.current, index);
+                              const end = Math.max(mobileSelectionStartRef.current, index);
+                              const linesToExplain = [];
+                              for (let i = start; i <= end; i++) {
+                                linesToExplain.push({ line: uploadedText[i], index: i });
                               }
-                            } : undefined}
-                            style={{
-                              cursor: 'pointer',
-                              padding: '4px',
-                              backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (isMobile && mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
-                              color: isSelected || isHighlighted ? 'white' : 'black',
-                              borderRadius: '2px',
-                              userSelect: isMobile ? 'text' : 'none',
-                              transition: 'background-color 0.2s ease',
-                              minHeight: 24
-                            }}
-                          >
-                            {line}
-                            {isMobile && mobileSelectionStartRef.current === index && (
-                              <span style={{ marginLeft: 8, background: '#fde68a', color: '#b45309', borderRadius: 4, fontSize: 12, padding: '2px 6px', fontWeight: 600 }}>
-                                Start
-                              </span>
-                            )}
-                          </p>
-                          {isLastSelected && (
-                            <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
-                              <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
-                              <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
-                            </div>
+                              setSelectedLines(linesToExplain);
+                              selectedLinesRef.current = linesToExplain;
+                              explainSelectedText(linesToExplain);
+                              setTimeout(() => setSelectedLines([]), 100);
+                              mobileSelectionStartRef.current = null;
+                            }
+                          } : undefined}
+                          style={{
+                            cursor: 'pointer',
+                            padding: '4px',
+                            backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (isMobile && mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
+                            color: isSelected || isHighlighted ? 'white' : 'black',
+                            borderRadius: '2px',
+                            userSelect: isMobile ? 'text' : 'none',
+                            transition: 'background-color 0.2s ease',
+                            minHeight: 24
+                          }}
+                        >
+                          {line}
+                          {isMobile && mobileSelectionStartRef.current === index && (
+                            <span style={{ marginLeft: 8, background: '#fde68a', color: '#b45309', borderRadius: 4, fontSize: 12, padding: '2px 6px', fontWeight: 600 }}>
+                              Start
+                            </span>
                           )}
-                        </div>
-                      );
-                    }}
-                  </List>
-                )}
-              </div>
-            </>
+                        </p>
+                        {isLastSelected && (
+                          <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                            <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
+                            <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }}
+                </List>
+              )}
+            </div>
           )}
         </div>
-        <div className="panel-divider" onMouseDown={handleDividerStart} onTouchStart={handleDividerStart} style={{ width: '8px', minWidth: '8px', maxWidth: '8px', flex: 'none', height: '100vh', backgroundColor: '#e5e7eb', cursor: 'col-resize', zIndex: 1000, pointerEvents: 'auto', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', position: 'relative', right: 0, top: 0 }} onMouseOver={(e) => { e.target.style.backgroundColor = '#d1d5db'; }} onMouseOut={(e) => { e.target.style.backgroundColor = '#e5e7eb'; }}>
+        <div className="panel-divider" onMouseDown={handleDividerStart} onTouchStart={handleDividerStart} style={{ display: isMobile && isPortrait ? 'none' : 'block', width: '8px', minWidth: '8px', maxWidth: '8px', flex: 'none', height: '100vh', backgroundColor: '#e5e7eb', cursor: 'col-resize', zIndex: 1000, pointerEvents: 'auto', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', position: 'relative', right: 0, top: 0 }} onMouseOver={(e) => { e.target.style.backgroundColor = '#d1d5db'; }} onMouseOut={(e) => { e.target.style.backgroundColor = '#e5e7eb'; }}>
           <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '2px', height: '40px', backgroundImage: `linear-gradient(to bottom, transparent 0px, #9ca3af 2px, #9ca3af 4px, transparent 6px, transparent 8px, #9ca3af 10px, #9ca3af 12px, transparent 14px, transparent 16px, #9ca3af 18px, #9ca3af 20px, transparent 22px, transparent 24px, #9ca3af 26px, #9ca3af 28px, transparent 30px, transparent 32px, #9ca3af 34px, #9ca3af 36px, transparent 38px)`, backgroundSize: '2px 4px', pointerEvents: 'none' }} />
         </div>
-        <div className="right-panel" style={{ flex: 1, height: '100vh', overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+        <div className="right-panel" style={{ flex: 1, height: !isMobile ? '100vh' : (isMobile && isPortrait ? '50%' : '100vh'), overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
           <div
             ref={headerRef}
             style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}
           >
+            {!showTextInputForms && (
+              <button style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }} onClick={() => setShowTextInputForms(true)}>Change Text</button>
+            )}
             <a href="/guide" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 500, fontSize: 15 }}>User Guide</a>
             {user && !userLoading && !isPremium && (
               usage >= FREEMIUM_LIMIT ? (
