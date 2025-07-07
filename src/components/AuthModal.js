@@ -161,7 +161,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 padding: '8px 12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
-                fontSize: '14px'
+                fontSize: '16px',
+                backgroundColor: 'white',
+                color: '#374151',
+                WebkitAppearance: 'none',
+                WebkitTapHighlightColor: 'transparent',
+                outline: 'none',
+                transform: 'translateZ(0)'
               }}
               required
             />
@@ -186,7 +192,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 padding: '8px 12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
-                fontSize: '14px'
+                fontSize: '16px',
+                backgroundColor: 'white',
+                color: '#374151',
+                WebkitAppearance: 'none',
+                WebkitTapHighlightColor: 'transparent',
+                outline: 'none',
+                transform: 'translateZ(0)'
               }}
               required
               minLength={6}
