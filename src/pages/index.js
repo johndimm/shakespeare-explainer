@@ -1426,7 +1426,7 @@ ${textToExplain}
         style={{
           display: 'flex',
           flexDirection: isMobile && isPortrait ? 'column' : 'row',
-          height: 'calc(var(--real-vh, 100vh))',
+          height: isMobile ? '100vh' : 'calc(var(--real-vh, 100vh))',
           fontFamily: 'monospace',
           fontSize: '12px',
           minWidth: isMobile ? 'auto' : '1024px',
@@ -1758,11 +1758,6 @@ ${textToExplain}
             <input type="text" value={inputMessage} onChange={e => setInputMessage(e.target.value)} placeholder="Ask follow-up questions..." style={{ flex: 1, padding: isMobile ? '6px' : '10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white', color: '#374151', WebkitAppearance: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', transform: 'translateZ(0)' }} disabled={isLoading} />
             <button type="submit" disabled={isLoading || !inputMessage.trim()} style={{ padding: isMobile ? '8px 12px' : '10px 18px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: isMobile ? '12px' : '15px', cursor: isLoading || !inputMessage.trim() ? 'not-allowed' : 'pointer', opacity: isLoading || !inputMessage.trim() ? 0.5 : 1 }}>Send</button>
           </form>
-          {isMobile && mobileSelectionStartRef.current !== null && (
-            <div style={{ textAlign: 'center', color: '#b45309', background: '#fef3c7', fontWeight: 500, fontSize: 14, padding: '6px 0' }}>
-              Tap the end of your selection to explain multiple lines.
-            </div>
-          )}
         </div>
       </div>
       {/* Auth Modal */}
@@ -1785,40 +1780,134 @@ ${textToExplain}
         onClose={() => setShowUpgradeModal(false)}
         message={upgradeMessage}
       />
-      {/* Removed SwipeScrollIndicator to save space on mobile */}
+      {/* Mobile Scroll Indicator with Jump Navigation */}
+      {isMobile && uploadedText.length > 0 && (
+        <MobileScrollIndicator uploadedText={uploadedText} />
+      )}
     </>
   );
 }
 
-function SwipeScrollIndicator({ uploadedText }) {
-  const containerRef = React.useRef();
-  const [show, setShow] = React.useState(false);
+function MobileScrollIndicator({ uploadedText }) {
+  const [scrollProgress, setScrollProgress] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   React.useEffect(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-    function checkScroll() {
-      setShow(el.scrollHeight > el.clientHeight + 8); // 8px fudge for rounding
-    }
-    checkScroll();
-    el.addEventListener('scroll', checkScroll);
-    window.addEventListener('resize', checkScroll);
-    return () => {
-      el.removeEventListener('scroll', checkScroll);
-      window.removeEventListener('resize', checkScroll);
+    const textContainer = document.querySelector('.left-panel');
+    if (!textContainer) return;
+
+    const updateScrollProgress = () => {
+      const scrollTop = textContainer.scrollTop;
+      const scrollHeight = textContainer.scrollHeight - textContainer.clientHeight;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      setScrollProgress(Math.min(100, Math.max(0, progress)));
     };
+
+    textContainer.addEventListener('scroll', updateScrollProgress);
+    updateScrollProgress(); // Initial update
+    
+    return () => textContainer.removeEventListener('scroll', updateScrollProgress);
   }, [uploadedText.length]);
 
+  const handleScrollbarClick = (e) => {
+    const textContainer = document.querySelector('.left-panel');
+    if (!textContainer) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const percentage = (clickY / rect.height) * 100;
+    const scrollHeight = textContainer.scrollHeight - textContainer.clientHeight;
+    const targetScroll = (percentage / 100) * scrollHeight;
+    
+    textContainer.scrollTo({ top: targetScroll, behavior: 'smooth' });
+  };
+
+  const jumpToSection = (percentage) => {
+    const textContainer = document.querySelector('.left-panel');
+    if (!textContainer) return;
+    
+    const scrollHeight = textContainer.scrollHeight - textContainer.clientHeight;
+    const targetScroll = (percentage / 100) * scrollHeight;
+    textContainer.scrollTo({ top: targetScroll, behavior: 'smooth' });
+  };
+
+  if (uploadedText.length === 0) return null;
+
   return (
-    <>
-      <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 1 }} />
-      {show && (
-        <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none', zIndex: 2 }}>
-          <span style={{ background: 'rgba(59,130,246,0.9)', color: 'white', borderRadius: 12, padding: '6px 16px', fontSize: 15, fontWeight: 500, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            ⇧ Swipe to scroll ⇩
-          </span>
-        </div>
-      )}
-    </>
+    <div style={{ 
+      position: 'fixed', 
+      right: '8px', 
+      top: '20%', 
+      bottom: '20%', 
+      width: '24px',
+      zIndex: 1000,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px'
+    }}>
+      {/* Quick Jump Buttons */}
+      <button
+        onClick={() => jumpToSection(0)}
+        style={{
+          background: 'rgba(59,130,246,0.9)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '12px',
+          padding: '6px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        }}
+      >
+        ↑
+      </button>
+      
+      {/* Scrollbar Track */}
+      <div
+        onClick={handleScrollbarClick}
+        style={{
+          flex: 1,
+          width: '6px',
+          background: 'rgba(0,0,0,0.1)',
+          borderRadius: '3px',
+          position: 'relative',
+          cursor: 'pointer',
+          alignSelf: 'center'
+        }}
+      >
+        {/* Scrollbar Thumb */}
+        <div
+          style={{
+            position: 'absolute',
+            top: `${scrollProgress}%`,
+            left: 0,
+            width: '6px',
+            height: '20px',
+            background: 'rgba(59,130,246,0.8)',
+            borderRadius: '3px',
+            transform: 'translateY(-50%)',
+            transition: isDragging ? 'none' : 'top 0.1s ease'
+          }}
+        />
+      </div>
+
+      <button
+        onClick={() => jumpToSection(100)}
+        style={{
+          background: 'rgba(59,130,246,0.9)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '12px',
+          padding: '6px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        }}
+      >
+        ↓
+      </button>
+    </div>
   );
 }
