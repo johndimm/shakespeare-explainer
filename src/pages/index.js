@@ -225,25 +225,17 @@ export default function ShakespeareExplainer() {
     if (!urlInput.trim()) return;
     try {
       setIsLoading(true);
-      console.log('Loading URL:', urlInput.trim());
       // Fetch via our own API to avoid CORS
       const res = await fetch(`/api/fetch-text?url=${encodeURIComponent(urlInput.trim())}`);
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('URL fetch failed:', res.status, errorText);
-        throw new Error(`Failed to load text (${res.status}): ${errorText}`);
-      }
+      if (!res.ok) throw new Error('Failed to load text');
       const text = await res.text();
-      console.log('URL loaded successfully, text length:', text.length);
       const lines = text.split('\n').filter(line => line.trim() !== '');
       handleTextLoaded(lines);
       setOutline(generateOutline(lines));
       setDetectedAuthor('Shakespeare');
-      // Preserve chat history and just add a system message about the new text
-      setChatMessages(prev => [...prev, { role: 'system', content: `New text loaded! (${lines.length} lines) Click or drag to select lines for explanation.` }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: 'Text loaded! Click or drag to select lines for explanation.' }]);
     } catch (error) {
-      console.error('URL loading error:', error);
-      setChatMessages(prev => [...prev, { role: 'system', content: `Failed to load text: ${error.message}` }]);
+      setChatMessages([{ role: 'system', content: 'Failed to load text.' }]);
     } finally {
       setIsLoading(false);
     }
