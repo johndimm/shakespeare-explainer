@@ -1452,30 +1452,30 @@ ${textToExplain}
         >
           {/* Input Forms always rendered above the text panel when showTextInputForms is true */}
           {showTextInputForms && (
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: isMobile ? 12 : 16 }}>
               {/* Quick Load Section */}
-              <div style={{ marginBottom: '16px', flexShrink: 0 }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Popular Works</h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/romeo-and-juliet_TXT_FolgerShakespeare.txt', 'Romeo and Juliet')} style={{ padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Romeo & Juliet</button>
-                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/macbeth_TXT_FolgerShakespeare.txt', 'Macbeth')} style={{ padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Macbeth</button>
-                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/hamlet_TXT_FolgerShakespeare.txt', 'Hamlet')} style={{ padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Hamlet</button>
-                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/king-lear_TXT_FolgerShakespeare.txt', 'King Lear')} style={{ padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>King Lear</button>
-                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/the-tempest_TXT_FolgerShakespeare.txt', 'The Tempest')} style={{ padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>The Tempest</button>
+              <div style={{ marginBottom: isMobile ? '12px' : '16px', flexShrink: 0 }}>
+                <h3 style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '600', marginBottom: isMobile ? '8px' : '12px', color: '#1f2937' }}>Popular Works</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? '6px' : '8px', marginBottom: isMobile ? '8px' : '12px' }}>
+                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/romeo-and-juliet_TXT_FolgerShakespeare.txt', 'Romeo and Juliet')} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: isMobile ? '11px' : '13px', fontWeight: '500' }}>Romeo & Juliet</button>
+                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/macbeth_TXT_FolgerShakespeare.txt', 'Macbeth')} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: isMobile ? '11px' : '13px', fontWeight: '500' }}>Macbeth</button>
+                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/hamlet_TXT_FolgerShakespeare.txt', 'Hamlet')} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: isMobile ? '11px' : '13px', fontWeight: '500' }}>Hamlet</button>
+                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/king-lear_TXT_FolgerShakespeare.txt', 'King Lear')} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: isMobile ? '11px' : '13px', fontWeight: '500' }}>King Lear</button>
+                  <button onClick={() => loadPlay('https://folger-main-site-assets.s3.amazonaws.com/uploads/2022/11/the-tempest_TXT_FolgerShakespeare.txt', 'The Tempest')} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: isMobile ? '11px' : '13px', fontWeight: '500' }}>The Tempest</button>
                 </div>
               </div>
               {/* Upload Section */}
-              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '20px', flexShrink: 0 }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Upload Your Text</h3>
-                <input type="file" accept="text/plain,.txt" onChange={handleFileUpload} style={{ display: 'block', width: '100%', marginBottom: '8px', padding: '12px', border: '2px dashed #d1d5db', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', fontSize: '14px', color: '#374151' }} />
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: isMobile ? '12px' : '16px', marginBottom: isMobile ? '12px' : '20px', flexShrink: 0 }}>
+                <h3 style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '600', marginBottom: isMobile ? '8px' : '12px', color: '#1f2937' }}>Upload Your Text</h3>
+                <input type="file" accept="text/plain,.txt" onChange={handleFileUpload} style={{ display: 'block', width: '100%', marginBottom: isMobile ? '6px' : '8px', padding: isMobile ? '8px' : '12px', border: '2px dashed #d1d5db', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', fontSize: isMobile ? '12px' : '14px', color: '#374151' }} />
                 <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic' }}>Supports .txt files • Auto-detects author & language</div>
               </div>
               {/* URL Loading Section */}
-              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '20px', flexShrink: 0 }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Load from URL</h3>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                  <input type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="Enter URL to text file..." disabled={isLoading} style={{ flex: 1, padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white', color: '#374151', WebkitAppearance: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', transform: 'translateZ(0)' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadTextFromURL(); } }} />
-                  <button onClick={loadTextFromURL} disabled={isLoading || !urlInput.trim()} style={{ padding: '12px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', opacity: (isLoading || !urlInput.trim()) ? 0.5 : 1 }}>Load</button>
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: isMobile ? '12px' : '16px', marginBottom: isMobile ? '12px' : '20px', flexShrink: 0 }}>
+                <h3 style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '600', marginBottom: isMobile ? '8px' : '12px', color: '#1f2937' }}>Load from URL</h3>
+                <div style={{ display: 'flex', gap: isMobile ? '6px' : '8px', marginBottom: isMobile ? '8px' : '12px' }}>
+                  <input type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="Enter URL to text file..." disabled={isLoading} style={{ flex: 1, padding: isMobile ? '8px' : '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white', color: '#374151', WebkitAppearance: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', transform: 'translateZ(0)' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadTextFromURL(); } }} />
+                  <button onClick={loadTextFromURL} disabled={isLoading || !urlInput.trim()} style={{ padding: isMobile ? '8px 12px' : '12px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: isMobile ? '12px' : '14px', fontWeight: '500', opacity: (isLoading || !urlInput.trim()) ? 0.5 : 1 }}>Load</button>
                 </div>
                 <div style={{ padding: '10px 12px', backgroundColor: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: '4px', marginBottom: '8px' }}>
                   <div style={{ fontSize: '12px', fontWeight: '500', color: '#065f46', marginBottom: '4px' }}>Try this example:</div>
@@ -1488,9 +1488,9 @@ ${textToExplain}
                 <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic' }}>Project Gutenberg, GitHub, or any public text URL</div>
               </div>
               {/* Paste Text Section */}
-              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Paste Text</h3>
-                <textarea placeholder="Paste classic literature text here..." onInput={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); setUploadedText(lines); setOutline(generateOutline(lines)); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages(prev => [...prev, { role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index=\"0\"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} onChange={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); setUploadedText(lines); setOutline(generateOutline(lines)); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages(prev => [...prev, { role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index=\"0\"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} style={{ flex: 1, width: '100%', minHeight: '120px', padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white', color: '#374151', resize: 'none', fontFamily: 'inherit', WebkitAppearance: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', lineHeight: '1.5', transform: 'translateZ(0)' }} />
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: isMobile ? '12px' : '16px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <h3 style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '600', marginBottom: isMobile ? '8px' : '12px', color: '#1f2937' }}>Paste Text</h3>
+                <textarea placeholder="Paste classic literature text here..." onInput={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); setUploadedText(lines); setOutline(generateOutline(lines)); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages(prev => [...prev, { role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index=\"0\"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} onChange={(e) => { const text = e.target.value; if (text.trim()) { const lines = text.split('\n').filter(line => line.trim() !== ''); setUploadedText(lines); setOutline(generateOutline(lines)); detectAuthorWithLLM(text).then(author => { setDetectedAuthor(author); }); setChatMessages(prev => [...prev, { role: 'system', content: 'Text pasted! Click or drag to select lines for explanation.' }]); setTimeout(() => { const leftPanel = document.querySelector('.left-panel'); const firstTextLine = leftPanel?.querySelector('[data-line-index=\"0\"]'); if (firstTextLine) { firstTextLine.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 300); } }} style={{ flex: 1, width: '100%', minHeight: isMobile ? '80px' : '120px', padding: isMobile ? '8px' : '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white', color: '#374151', resize: 'none', fontFamily: 'inherit', WebkitAppearance: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', lineHeight: '1.5', transform: 'translateZ(0)' }} />
                 <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic', marginTop: '8px' }}>Copy and paste from any source</div>
               </div>
             </div>
@@ -1543,10 +1543,12 @@ ${textToExplain}
                           } : undefined}
                           style={{
                             cursor: 'pointer',
-                            padding: '4px',
+                            padding: isMobile ? '2px 6px' : '4px',
                             backgroundColor: isSelected ? '#3b82f6' : highlightedLines.has(index) ? '#fef08a' : isHighlighted ? '#fbbf24' : (mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
                             color: isSelected || isHighlighted ? 'white' : 'black',
                             borderRadius: '2px',
+                            fontSize: isMobile ? '12px' : '14px',
+                            lineHeight: isMobile ? '1.3' : '1.5',
                             userSelect: 'text',
                             transition: 'background-color 0.2s ease',
                             minHeight: 24
@@ -1561,8 +1563,8 @@ ${textToExplain}
                         </p>
                         {isLastSelected && (
                           <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
-                            <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
-                            <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
+                            <button onClick={explainMultipleLines} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: isMobile ? '12px' : '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
+                            <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: isMobile ? '12px' : '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
                           </div>
                         )}
                       </div>
@@ -1641,8 +1643,8 @@ ${textToExplain}
                         </p>
                         {isLastSelected && (
                           <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', gap: '8px' }}>
-                            <button onClick={explainMultipleLines} style={{ padding: '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
-                            <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
+                            <button onClick={explainMultipleLines} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: isMobile ? '12px' : '14px', fontWeight: 'bold' }}>{getUIText('explainSelected')} ({selectedLines.length})</button>
+                            <button onClick={() => { setSelectedLines([]); setShowButtons(false); }} style={{ padding: isMobile ? '6px 8px' : '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: isMobile ? '12px' : '14px', fontWeight: 'bold' }}>{getUIText('clear')}</button>
                           </div>
                         )}
                       </div>
@@ -1659,12 +1661,12 @@ ${textToExplain}
         <div className="right-panel" style={{ flex: 1, height: isMobile && isPortrait ? '50%' : 'calc(var(--real-vh, 100vh))', overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
           <div
             ref={headerRef}
-            style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}
+            style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: isMobile ? '6px 12px' : '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: isMobile ? 8 : 16 }}
           >
             {!showTextInputForms && (
-              <button style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }} onClick={() => { console.log('Change Text clicked, current uploadedText length:', uploadedText.length); setShowTextInputForms(true); }}>Change Text</button>
+              <button style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: isMobile ? '6px 12px' : '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: isMobile ? '12px' : 14 }} onClick={() => { console.log('Change Text clicked, current uploadedText length:', uploadedText.length); setShowTextInputForms(true); }}>Change Text</button>
             )}
-            <a href="/guide" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 500, fontSize: 15 }}>User Guide</a>
+            <a href="/guide" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 500, fontSize: isMobile ? '12px' : 15 }}>User Guide</a>
             {user && !userLoading && !isPremium && (
               usage >= FREEMIUM_LIMIT ? (
                 <span style={{
@@ -1725,13 +1727,13 @@ ${textToExplain}
               <button onClick={handleSignIn} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer' }}>Sign In to Chat</button>
             </div>
           )}
-          <div id="chat-container" style={{ flex: 1, overflowY: 'auto', border: '1px solid #ccc', borderRadius: '4px', padding: '8px', marginBottom: '8px', background: 'white' }}>
+          <div id="chat-container" style={{ flex: 1, overflowY: 'auto', border: '1px solid #ccc', borderRadius: '4px', padding: isMobile ? '6px' : '8px', marginBottom: isMobile ? '6px' : '8px', background: 'white' }}>
             {chatMessages.map((msg, idx) => (
-              <div key={idx} data-role={msg.role} style={{ marginBottom: '12px', padding: '8px', backgroundColor: msg.role === 'user' ? '#e3f2fd' : msg.role === 'assistant' ? '#f5f5f5' : '#fff3cd', borderRadius: '4px' }}>
+              <div key={idx} data-role={msg.role} style={{ marginBottom: isMobile ? '6px' : '12px', padding: isMobile ? '6px' : '8px', backgroundColor: msg.role === 'user' ? '#e3f2fd' : msg.role === 'assistant' ? '#f5f5f5' : '#fff3cd', borderRadius: '4px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '12px', marginBottom: '4px', color: msg.role === 'user' ? '#1976d2' : msg.role === 'assistant' ? '#666' : '#856404' }}>
                   {msg.role === 'user' ? getUIText('you') : msg.role === 'assistant' ? getUIText('shakespeareExpert') : getUIText('system')}
                 </div>
-                <div style={{ fontSize: '14px', whiteSpace: 'pre-wrap', color: '#000000' }}>
+                <div style={{ fontSize: isMobile ? '12px' : '14px', whiteSpace: 'pre-wrap', color: '#000000' }}>
                   {msg.lineIndices ? (
                     <span
                       onClick={() => jumpToTextAndHighlight(msg.lineIndices)}
@@ -1752,9 +1754,9 @@ ${textToExplain}
               </div>
             )}
           </div>
-          <form onSubmit={sendChatMessage} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '8px', background: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
-            <input type="text" value={inputMessage} onChange={e => setInputMessage(e.target.value)} placeholder="Ask follow-up questions..." style={{ flex: 1, padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white', color: '#374151', WebkitAppearance: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', transform: 'translateZ(0)' }} disabled={isLoading} />
-            <button type="submit" disabled={isLoading || !inputMessage.trim()} style={{ padding: '10px 18px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '15px', cursor: isLoading || !inputMessage.trim() ? 'not-allowed' : 'pointer', opacity: isLoading || !inputMessage.trim() ? 0.5 : 1 }}>Send</button>
+          <form onSubmit={sendChatMessage} style={{ display: 'flex', gap: isMobile ? '6px' : '8px', alignItems: 'center', padding: isMobile ? '6px' : '8px', background: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
+            <input type="text" value={inputMessage} onChange={e => setInputMessage(e.target.value)} placeholder="Ask follow-up questions..." style={{ flex: 1, padding: isMobile ? '6px' : '10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white', color: '#374151', WebkitAppearance: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', transform: 'translateZ(0)' }} disabled={isLoading} />
+            <button type="submit" disabled={isLoading || !inputMessage.trim()} style={{ padding: isMobile ? '8px 12px' : '10px 18px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: isMobile ? '12px' : '15px', cursor: isLoading || !inputMessage.trim() ? 'not-allowed' : 'pointer', opacity: isLoading || !inputMessage.trim() ? 0.5 : 1 }}>Send</button>
           </form>
           {isMobile && mobileSelectionStartRef.current !== null && (
             <div style={{ textAlign: 'center', color: '#b45309', background: '#fef3c7', fontWeight: 500, fontSize: 14, padding: '6px 0' }}>
@@ -1783,9 +1785,7 @@ ${textToExplain}
         onClose={() => setShowUpgradeModal(false)}
         message={upgradeMessage}
       />
-      {isMobile && (
-        <SwipeScrollIndicator uploadedText={uploadedText} />
-      )}
+      {/* Removed SwipeScrollIndicator to save space on mobile */}
     </>
   );
 }
