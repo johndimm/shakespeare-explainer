@@ -1202,6 +1202,20 @@ ${textToExplain}
     document.body.style.userSelect = 'none';
   };
 
+  // Dynamic viewport height for mobile
+  useEffect(() => {
+    function setRealVh() {
+      document.documentElement.style.setProperty('--real-vh', `${window.innerHeight}px`);
+    }
+    setRealVh();
+    window.addEventListener('resize', setRealVh);
+    window.addEventListener('orientationchange', setRealVh);
+    return () => {
+      window.removeEventListener('resize', setRealVh);
+      window.removeEventListener('orientationchange', setRealVh);
+    };
+  }, []);
+
   return (
     <>
       <Head>
@@ -1212,7 +1226,7 @@ ${textToExplain}
         style={{
           display: 'flex',
           flexDirection: isMobile && isPortrait ? 'column' : 'row',
-          height: !isMobile ? '100dvh' : (isMobile && isPortrait ? '50%' : '100dvh'), // Use 100dvh for mobile viewport correctness
+          height: 'calc(var(--real-vh, 100vh))',
           fontFamily: 'monospace',
           fontSize: '14px',
           minWidth: isMobile ? 'auto' : '1024px',
@@ -1224,7 +1238,7 @@ ${textToExplain}
           ref={leftPanelRef}
           style={{
             width: isMobile && isPortrait ? '100%' : `${leftPanelWidth}%`,
-            height: !isMobile ? '100dvh' : (isMobile && isPortrait ? '50%' : '100dvh'), // Use 100dvh for mobile viewport correctness
+            height: isMobile && isPortrait ? '50%' : 'calc(var(--real-vh, 100vh))',
             padding: '16px',
             paddingRight: 0,
             backgroundColor: 'white',
@@ -1410,7 +1424,7 @@ ${textToExplain}
         <div className="panel-divider" onMouseDown={handleDividerStart} onTouchStart={handleDividerStart} style={{ display: isMobile && isPortrait ? 'none' : 'block', width: '8px', minWidth: '8px', maxWidth: '8px', flex: 'none', height: '100vh', backgroundColor: '#e5e7eb', cursor: 'col-resize', zIndex: 1000, pointerEvents: 'auto', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', position: 'relative', right: 0, top: 0 }} onMouseOver={(e) => { e.target.style.backgroundColor = '#d1d5db'; }} onMouseOut={(e) => { e.target.style.backgroundColor = '#e5e7eb'; }}>
           <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '2px', height: '40px', backgroundImage: `linear-gradient(to bottom, transparent 0px, #9ca3af 2px, #9ca3af 4px, transparent 6px, transparent 8px, #9ca3af 10px, #9ca3af 12px, transparent 14px, transparent 16px, #9ca3af 18px, #9ca3af 20px, transparent 22px, transparent 24px, #9ca3af 26px, #9ca3af 28px, transparent 30px, transparent 32px, #9ca3af 34px, #9ca3af 36px, transparent 38px)`, backgroundSize: '2px 4px', pointerEvents: 'none' }} />
         </div>
-        <div className="right-panel" style={{ flex: 1, height: !isMobile ? '100dvh' : (isMobile && isPortrait ? '50%' : '100dvh'), overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+        <div className="right-panel" style={{ flex: 1, height: isMobile && isPortrait ? '50%' : 'calc(var(--real-vh, 100vh))', overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
           <div
             ref={headerRef}
             style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}
