@@ -14,55 +14,66 @@ export default async function handler(req, res) {
 
   console.log('Chat API called with body:', req.body);
 
-  // Check authentication
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+  const { freeAccess } = req.body;
+  let decoded = null;
 
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-
-  console.log('Token decoded successfully:', decoded);
-
-  // Check usage limits using rolling window (3 per hour)
-  try {
-    const now = new Date();
-    const windowStart = new Date(now.getTime() - 60 * 60 * 1000); // 1 hour ago
-    
-    const usages = await prisma.usage.findMany({
-      where: {
-        userId: decoded.userId,
-        type: 'chat',
-        date: { gte: windowStart }
-      },
-      orderBy: { date: 'asc' }
-    });
-    
-    const currentUsage = usages.reduce((sum, u) => sum + u.count, 0);
-    const limit = 100; // TEMP: Increase for testing, revert to 3 for production
-    
-    if (currentUsage >= limit) {
-      // Find the earliest usage in the window (for next reset)
-      const earliestUsage = usages[0];
-      const nextReset = new Date(new Date(earliestUsage.date).getTime() + 60 * 60 * 1000);
-      
-      return res.status(429).json({ 
-        error: 'Usage limit reached',
-        currentUsage,
-        limit,
-        nextReset,
-        upgradeRequired: true,
-        message: 'You\'ve reached your limit of 3 explanations per hour. Please wait or upgrade to Premium for unlimited access!'
-      });
+  // Skip authentication for free access (mobile)
+  if (freeAccess) {
+    console.log('🆓 Free access mode - skipping authentication');
+    decoded = { userId: 'free-user', email: 'mobile@free.access', name: 'Mobile User' };
+  } else {
+    // Check authentication for desktop
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-  } catch (error) {
-    console.error('Usage check error:', error);
-    // Continue without usage limits for now
+
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Token decoded successfully:', decoded);
+    } catch (error) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+  }
+
+  // Check usage limits only for authenticated users (desktop)
+  if (!freeAccess) {
+    try {
+      const now = new Date();
+      const windowStart = new Date(now.getTime() - 60 * 60 * 1000); // 1 hour ago
+      
+      const usages = await prisma.usage.findMany({
+        where: {
+          userId: decoded.userId,
+          type: 'chat',
+          date: { gte: windowStart }
+        },
+        orderBy: { date: 'asc' }
+      });
+      
+      const currentUsage = usages.reduce((sum, u) => sum + u.count, 0);
+      const limit = 100; // TEMP: Increase for testing, revert to 3 for production
+      
+      if (currentUsage >= limit) {
+        // Find the earliest usage in the window (for next reset)
+        const earliestUsage = usages[0];
+        const nextReset = new Date(new Date(earliestUsage.date).getTime() + 60 * 60 * 1000);
+        
+        return res.status(429).json({ 
+          error: 'Usage limit reached',
+          currentUsage,
+          limit,
+          nextReset,
+          upgradeRequired: true,
+          message: 'You\'ve reached your limit of 3 explanations per hour. Please wait or upgrade to Premium for unlimited access!'
+        });
+      }
+    } catch (error) {
+      console.error('Usage check error:', error);
+      // Continue without usage limits for now
+    }
+  } else {
+    console.log('🆓 Skipping usage limits for free access');
   }
 
   const { messages, responseLanguage, myLanguage } = req.body;
@@ -113,12 +124,16 @@ export default async function handler(req, res) {
 
     const response = completion.choices[0].message.content;
     
-    // Record usage
-    try {
-      await UsageService.recordUsage(decoded.userId, 'chat');
-    } catch (error) {
-      console.error('Usage recording error:', error);
-      // Continue even if usage recording fails
+    // Record usage only for authenticated users (desktop)
+    if (!freeAccess) {
+      try {
+        await UsageService.recordUsage(decoded.userId, 'chat');
+      } catch (error) {
+        console.error('Usage recording error:', error);
+        // Continue even if usage recording fails
+      }
+    } else {
+      console.log('🆓 Skipping usage recording for free access');
     }
 
     return res.status(200).json({ response });

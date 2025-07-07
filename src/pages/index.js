@@ -227,20 +227,27 @@ export default function ShakespeareExplainer() {
   };
 
   // Load text from URL
-  const loadTextFromURL = async () => {
-    if (!urlInput.trim()) return;
+  const loadTextFromURL = async (providedUrl = null) => {
+    const urlToLoad = providedUrl || urlInput.trim();
+    if (!urlToLoad) return;
+    
     try {
       setIsLoading(true);
+      console.log('🌐 Loading text from URL:', urlToLoad);
+      
       // Fetch via our own API to avoid CORS
-      const res = await fetch(`/api/fetch-text?url=${encodeURIComponent(urlInput.trim())}`);
+      const res = await fetch(`/api/fetch-text?url=${encodeURIComponent(urlToLoad)}`);
       if (!res.ok) throw new Error('Failed to load text');
       const text = await res.text();
       const lines = text.split('\n').filter(line => line.trim() !== '');
+      
+      console.log('✅ Text loaded successfully, lines:', lines.length);
       handleTextLoaded(lines);
       setOutline(generateOutline(lines));
       setDetectedAuthor('Shakespeare');
       setChatMessages(prev => [...prev, { role: 'system', content: 'Text loaded! Click or drag to select lines for explanation.' }]);
     } catch (error) {
+      console.error('❌ Failed to load text from URL:', error);
       setChatMessages([{ role: 'system', content: 'Failed to load text.' }]);
     } finally {
       setIsLoading(false);
@@ -688,10 +695,16 @@ export default function ShakespeareExplainer() {
       console.log('❌ No lines provided to explain');
       return;
     }
-    if (!user) {
-      console.log('❌ User not signed in');
+    // Check authentication only for desktop, free access on mobile
+    if (!isMobile && !user) {
+      console.log('❌ Desktop user not signed in');
       setChatMessages(prev => [...prev, { role: 'system', content: 'Please sign in to use this feature.' }]);
       return;
+    }
+    if (isMobile) {
+      console.log('📱 Mobile free access mode - no authentication required');
+    } else {
+      console.log('💻 Desktop authenticated access');
     }
     const textToExplain = lines.map(item => item.line).join('\n');
     const userMessage = `Explain the meaning and context of the following lines from Shakespeare. Do not mention the act, scene, or line number.\n\n"""
@@ -714,35 +727,30 @@ ${textToExplain}
     }, 100);
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      console.log('🔑 Making API call with token:', token ? 'present' : 'missing');
-      console.log('🔑 Token length:', token ? token.length : 0);
       console.log('📱 Is mobile:', isMobile);
-      console.log('👤 User state:', user ? 'signed in' : 'not signed in');
-      
-      // Add debug info to chat for mobile users
-      if (isMobile) {
-        setChatMessages(prev => [...prev, { 
-          role: 'system', 
-          content: `🔧 Debug: Making API call (Token: ${token ? 'present' : 'missing'}, User: ${user ? 'signed in' : 'not signed in'})` 
-        }]);
-      }
       
       const requestPayload = { 
         messages: [...chatMessages, { role: 'user', content: userMessage }], 
         responseLanguage: responseLanguage, 
-        myLanguage: myLanguage 
+        myLanguage: myLanguage,
+        freeAccess: isMobile  // Flag for API to bypass auth on mobile only
       };
-      console.log('📤 Request payload:', {
-        messageCount: requestPayload.messages.length,
-        responseLanguage: requestPayload.responseLanguage,
-        myLanguage: requestPayload.myLanguage,
-        lastMessageLength: userMessage.length
-      });
+      
+      // Include auth header only for desktop
+      const headers = { 'Content-Type': 'application/json' };
+      if (!isMobile) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        console.log('💻 Desktop: Using auth token');
+      } else {
+        console.log('📱 Mobile: Free access mode');
+      }
       
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: headers,
         body: JSON.stringify(requestPayload),
       });
       
@@ -835,7 +843,9 @@ ${textToExplain}
   const sendChatMessage = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim() || isLoading) return;
-    if (!user) {
+    
+    // Check authentication only for desktop, free access on mobile
+    if (!isMobile && !user) {
       setChatMessages(prev => [...prev, { role: 'system', content: 'Please sign in to use this feature.' }]);
       return;
     }
@@ -860,18 +870,25 @@ ${textToExplain}
     setIsLoading(true);
     
     try {
-      console.log('sendChatMessage - Sending request with responseLanguage:', responseLanguage);
-      const token = localStorage.getItem('authToken');
+      console.log('sendChatMessage - Mobile:', isMobile, 'ResponseLanguage:', responseLanguage);
+      
+      // Include auth header only for desktop
+      const headers = { 'Content-Type': 'application/json' };
+      if (!isMobile) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: headers,
         body: JSON.stringify({ 
           messages: [...chatMessages, { role: 'user', content: userMessage }],
           responseLanguage: responseLanguage,
-          myLanguage: myLanguage
+          myLanguage: myLanguage,
+          freeAccess: isMobile  // Flag for API to bypass auth on mobile
         }),
       });
       const data = await res.json();
@@ -1262,9 +1279,42 @@ ${textToExplain}
   // Sign in/out handlers
   const handleSignIn = () => setShowAuthModal(true);
   const handleSignOut = () => {
-    localStorage.removeItem('authToken');
-    setUser(null);
-    window.location.reload();
+    console.log('🚪 Signing out user');
+    try {
+      // Clear all auth-related data
+      localStorage.removeItem('authToken');
+      
+      // Double-check token is cleared
+      const tokenCheck = localStorage.getItem('authToken');
+      console.log('🔍 Token after removal:', tokenCheck ? 'still present!' : 'cleared');
+      
+      // Clear any other potential auth data
+      localStorage.removeItem('user');
+      localStorage.removeItem('refreshToken');
+      
+      // Clear all state immediately
+      setUser(null);
+      setUserLoading(false);
+      setChatMessages([]);
+      setSelectedLines([]);
+      setShowButtons(false);
+      setUploadedText([]);
+      setDetectedAuthor('Shakespeare');
+      selectedLinesRef.current = [];
+      
+      console.log('✅ Sign out successful, redirecting to clean page');
+      // Try redirect instead of reload - sometimes reload can be blocked
+      window.location.href = window.location.origin + window.location.pathname;
+    } catch (error) {
+      console.error('❌ Sign out error:', error);
+      // Multiple fallback attempts
+      try {
+        window.location.reload(true); // Force reload from server
+      } catch (reloadError) {
+        console.error('❌ Reload failed, trying href redirect');
+        window.location.href = '/';
+      }
+    }
   };
 
   useEffect(() => {
@@ -1429,7 +1479,11 @@ ${textToExplain}
                 </div>
                 <div style={{ padding: '10px 12px', backgroundColor: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: '4px', marginBottom: '8px' }}>
                   <div style={{ fontSize: '12px', fontWeight: '500', color: '#065f46', marginBottom: '4px' }}>Try this example:</div>
-                  <button onClick={() => { setUrlInput('https://shakespeare-explainer.vercel.app/le-misanthrope-moliere.txt'); setTimeout(() => loadTextFromURL(), 100); }} style={{ background: 'none', border: 'none', color: '#059669', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0, fontWeight: '500' }}>Le Misanthrope by Molière</button>
+                  <button onClick={() => { 
+                    const exampleUrl = 'https://shakespeare-explainer.vercel.app/le-misanthrope-moliere.txt';
+                    setUrlInput(exampleUrl); 
+                    loadTextFromURL(exampleUrl); 
+                  }} style={{ background: 'none', border: 'none', color: '#059669', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0, fontWeight: '500' }}>Le Misanthrope by Molière</button>
                 </div>
                 <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic' }}>Project Gutenberg, GitHub, or any public text URL</div>
               </div>
@@ -1635,13 +1689,38 @@ ${textToExplain}
               )
             )}
             {user && !userLoading && (
-              <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 14, marginRight: 4, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</span>
+              <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 14, marginRight: 4, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email || user.name || 'Signed In'}
+              </span>
             )}
+            {console.log('🔍 Render check - User:', user ? 'present' : 'null', 'UserLoading:', userLoading)}
             {user && !userLoading && (
-              <button onClick={handleSignOut} style={{ background: 'none', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: 6, padding: '6px 14px', fontWeight: 400, fontSize: 14, cursor: 'pointer' }}>Sign Out</button>
+              <button 
+                onClick={() => {
+                  console.log('🔘 Sign Out button clicked');
+                  handleSignOut();
+                }} 
+                style={{ 
+                  background: 'none', 
+                  color: '#6b7280', 
+                  border: '1px solid #d1d5db', 
+                  borderRadius: 6, 
+                  padding: '6px 14px', 
+                  fontWeight: 400, 
+                  fontSize: 14, 
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseDown={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onMouseUp={(e) => e.target.style.backgroundColor = 'transparent'}
+                onTouchStart={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onTouchEnd={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                Sign Out
+              </button>
             )}
           </div>
-          {!user && !userLoading && (
+          {!isMobile && !user && !userLoading && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
               <button onClick={handleSignIn} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, cursor: 'pointer' }}>Sign In to Chat</button>
             </div>

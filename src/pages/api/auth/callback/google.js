@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     return res.redirect(`/?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(error_description || errorMessage)}`);
   }
   
-  const isMobile = state && state.includes('mobile=true');
+  const isMobile = state && (state.includes('mobile_true') || state.includes('mobile=true'));
   console.log('Google OAuth callback - Mobile:', isMobile, 'State:', state);
   console.log('Google OAuth redirect URI:', redirectUri);
   
