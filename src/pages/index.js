@@ -45,6 +45,7 @@ export default function ShakespeareExplainer() {
   const [nextReset, setNextReset] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
   const [showTextInputForms, setShowTextInputForms] = useState(true);
+  const [isReady, setIsReady] = useState(false);
 
   const [listHeight, setListHeight] = useState(600); // Default for SSR
 
@@ -68,6 +69,11 @@ export default function ShakespeareExplainer() {
 
   // Add a ref for the header
   const headerRef = React.useRef();
+
+  // Add refs to track touch timing and position
+  const touchStartTimeRef = React.useRef(0);
+  const touchStartYRef = React.useRef(0);
+  const touchStartXRef = React.useRef(0);
 
   const arraysEqual = (a, b) => {
     if (a.length !== b.length) return false;
@@ -1216,6 +1222,35 @@ ${textToExplain}
     };
   }, []);
 
+  // Add a function to handle jumping and highlighting
+  const jumpToTextAndHighlight = (lineIndices) => {
+    if (!lineIndices || lineIndices.length === 0) return;
+    // Highlight the lines
+    setHighlightedLines(new Set(lineIndices));
+    // Scroll to the first line
+    const firstIndex = Math.min(...lineIndices);
+    setTimeout(() => {
+      const lineElement = document.querySelector(`[data-line-index="${firstIndex}"]`);
+      if (lineElement) {
+        lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+      setHighlightedLines(new Set());
+    }, 2000);
+  };
+
+  // After defining showTextInputForms state:
+  useEffect(() => {
+    if (typeof SINGLE_WORK !== 'undefined' && SINGLE_WORK) {
+      setShowTextInputForms(false);
+    }
+    setIsReady(true);
+  }, []);
+
+  if (!isReady) return null;
+
   return (
     <>
       <Head>
@@ -1228,7 +1263,7 @@ ${textToExplain}
           flexDirection: isMobile && isPortrait ? 'column' : 'row',
           height: 'calc(var(--real-vh, 100vh))',
           fontFamily: 'monospace',
-          fontSize: '14px',
+          fontSize: '12px',
           minWidth: isMobile ? 'auto' : '1024px',
           overflow: 'hidden',
         }}
@@ -1305,28 +1340,42 @@ ${textToExplain}
                         <p
                           ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
                           data-line-index={index}
-                          onTouchStart={() => {
-                            if (mobileSelectionStartRef.current === null) {
-                              mobileSelectionStartRef.current = index;
-                              setSelectedLines([{ line, index }]);
-                              selectedLinesRef.current = [{ line, index }];
-                            } else {
-                              const start = Math.min(mobileSelectionStartRef.current, index);
-                              const end = Math.max(mobileSelectionStartRef.current, index);
-                              const linesToExplain = [];
-                              for (let i = start; i <= end; i++) {
-                                linesToExplain.push({ line: uploadedText[i], index: i });
+                          onTouchStart={isMobile ? (e) => {
+                            const touch = e.touches ? e.touches[0] : e;
+                            touchStartTimeRef.current = Date.now();
+                            touchStartYRef.current = touch.clientY;
+                            touchStartXRef.current = touch.clientX;
+                          } : undefined}
+                          onTouchEnd={isMobile ? (e) => {
+                            const touch = e.changedTouches ? e.changedTouches[0] : e;
+                            const dt = Date.now() - touchStartTimeRef.current;
+                            const dy = Math.abs(touch.clientY - touchStartYRef.current);
+                            const dx = Math.abs(touch.clientX - touchStartXRef.current);
+                            // Only treat as selection if short tap or slow, short drag
+                            if (dt < 200 && dx < 10 && dy < 10) {
+                              // Simulate the old selection logic
+                              if (mobileSelectionStartRef.current === null) {
+                                mobileSelectionStartRef.current = index;
+                                setSelectedLines([{ line, index }]);
+                                selectedLinesRef.current = [{ line, index }];
+                              } else {
+                                const start = Math.min(mobileSelectionStartRef.current, index);
+                                const end = Math.max(mobileSelectionStartRef.current, index);
+                                const linesToExplain = [];
+                                for (let i = start; i <= end; i++) {
+                                  linesToExplain.push({ line: uploadedText[i], index: i });
+                                }
+                                setSelectedLines(linesToExplain);
+                                selectedLinesRef.current = linesToExplain;
+                                setShowButtons(true);
+                                mobileSelectionStartRef.current = null;
                               }
-                              setSelectedLines(linesToExplain);
-                              selectedLinesRef.current = linesToExplain;
-                              setShowButtons(true);
-                              mobileSelectionStartRef.current = null;
                             }
-                          }}
+                          } : undefined}
                           style={{
                             cursor: 'pointer',
                             padding: '4px',
-                            backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
+                            backgroundColor: isSelected ? '#3b82f6' : highlightedLines.has(index) ? '#fef08a' : isHighlighted ? '#fbbf24' : (mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
                             color: isSelected || isHighlighted ? 'white' : 'black',
                             borderRadius: '2px',
                             userSelect: 'text',
@@ -1371,28 +1420,42 @@ ${textToExplain}
                           ref={index <= 1 ? el => { if (index === 0) firstLineRef.current = el; if (index === 1) secondLineRef.current = el; } : undefined}
                           data-line-index={index}
                           onMouseDown={!isMobile ? () => handleMouseDown(line, index) : undefined}
-                          onTouchStart={isMobile ? () => {
-                            if (mobileSelectionStartRef.current === null) {
-                              mobileSelectionStartRef.current = index;
-                              setSelectedLines([{ line, index }]);
-                              selectedLinesRef.current = [{ line, index }];
-                            } else {
-                              const start = Math.min(mobileSelectionStartRef.current, index);
-                              const end = Math.max(mobileSelectionStartRef.current, index);
-                              const linesToExplain = [];
-                              for (let i = start; i <= end; i++) {
-                                linesToExplain.push({ line: uploadedText[i], index: i });
+                          onTouchStart={isMobile ? (e) => {
+                            const touch = e.touches ? e.touches[0] : e;
+                            touchStartTimeRef.current = Date.now();
+                            touchStartYRef.current = touch.clientY;
+                            touchStartXRef.current = touch.clientX;
+                          } : undefined}
+                          onTouchEnd={isMobile ? (e) => {
+                            const touch = e.changedTouches ? e.changedTouches[0] : e;
+                            const dt = Date.now() - touchStartTimeRef.current;
+                            const dy = Math.abs(touch.clientY - touchStartYRef.current);
+                            const dx = Math.abs(touch.clientX - touchStartXRef.current);
+                            // Only treat as selection if short tap or slow, short drag
+                            if (dt < 200 && dx < 10 && dy < 10) {
+                              // Simulate the old selection logic
+                              if (mobileSelectionStartRef.current === null) {
+                                mobileSelectionStartRef.current = index;
+                                setSelectedLines([{ line, index }]);
+                                selectedLinesRef.current = [{ line, index }];
+                              } else {
+                                const start = Math.min(mobileSelectionStartRef.current, index);
+                                const end = Math.max(mobileSelectionStartRef.current, index);
+                                const linesToExplain = [];
+                                for (let i = start; i <= end; i++) {
+                                  linesToExplain.push({ line: uploadedText[i], index: i });
+                                }
+                                setSelectedLines(linesToExplain);
+                                selectedLinesRef.current = linesToExplain;
+                                setShowButtons(true);
+                                mobileSelectionStartRef.current = null;
                               }
-                              setSelectedLines(linesToExplain);
-                              selectedLinesRef.current = linesToExplain;
-                              setShowButtons(true);
-                              mobileSelectionStartRef.current = null;
                             }
                           } : undefined}
                           style={{
                             cursor: 'pointer',
                             padding: '4px',
-                            backgroundColor: isSelected ? '#3b82f6' : isHighlighted ? '#fbbf24' : (isMobile && mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
+                            backgroundColor: isSelected ? '#3b82f6' : highlightedLines.has(index) ? '#fef08a' : isHighlighted ? '#fbbf24' : (isMobile && mobileSelectionStartRef.current === index) ? '#fde68a' : 'white',
                             color: isSelected || isHighlighted ? 'white' : 'black',
                             borderRadius: '2px',
                             userSelect: 'text',
@@ -1474,7 +1537,19 @@ ${textToExplain}
                 <div style={{ fontWeight: 'bold', fontSize: '12px', marginBottom: '4px', color: msg.role === 'user' ? '#1976d2' : msg.role === 'assistant' ? '#666' : '#856404' }}>
                   {msg.role === 'user' ? getUIText('you') : msg.role === 'assistant' ? getUIText('shakespeareExpert') : getUIText('system')}
                 </div>
-                <div style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                <div style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>
+                  {msg.lineIndices ? (
+                    <span
+                      onClick={() => jumpToTextAndHighlight(msg.lineIndices)}
+                      style={{ cursor: 'pointer', background: '#fef08a', borderRadius: 4, padding: '2px 4px', transition: 'background 0.2s' }}
+                      title="Jump to text"
+                    >
+                      {msg.content}
+                    </span>
+                  ) : (
+                    msg.content
+                  )}
+                </div>
               </div>
             ))}
             {isLoading && (
