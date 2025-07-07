@@ -225,18 +225,25 @@ export default function ShakespeareExplainer() {
     if (!urlInput.trim()) return;
     try {
       setIsLoading(true);
+      console.log('Loading URL:', urlInput.trim());
       // Fetch via our own API to avoid CORS
       const res = await fetch(`/api/fetch-text?url=${encodeURIComponent(urlInput.trim())}`);
-      if (!res.ok) throw new Error('Failed to load text');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('URL fetch failed:', res.status, errorText);
+        throw new Error(`Failed to load text (${res.status}): ${errorText}`);
+      }
       const text = await res.text();
+      console.log('URL loaded successfully, text length:', text.length);
       const lines = text.split('\n').filter(line => line.trim() !== '');
       handleTextLoaded(lines);
       setOutline(generateOutline(lines));
       setDetectedAuthor('Shakespeare');
       // Preserve chat history and just add a system message about the new text
-      setChatMessages(prev => [...prev, { role: 'system', content: 'New text loaded! Click or drag to select lines for explanation.' }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `New text loaded! (${lines.length} lines) Click or drag to select lines for explanation.` }]);
     } catch (error) {
-      setChatMessages([{ role: 'system', content: 'Failed to load text.' }]);
+      console.error('URL loading error:', error);
+      setChatMessages(prev => [...prev, { role: 'system', content: `Failed to load text: ${error.message}` }]);
     } finally {
       setIsLoading(false);
     }
@@ -1213,7 +1220,7 @@ ${textToExplain}
         style={{
           display: 'flex',
           flexDirection: isMobile && isPortrait ? 'column' : 'row',
-          height: !isMobile ? '100vh' : '100vh', // Always 100vh for desktop and mobile landscape
+          height: !isMobile ? '100dvh' : (isMobile && isPortrait ? '50%' : '100dvh'), // Use 100dvh for mobile viewport correctness
           fontFamily: 'monospace',
           fontSize: '14px',
           minWidth: isMobile ? 'auto' : '1024px',
@@ -1225,7 +1232,7 @@ ${textToExplain}
           ref={leftPanelRef}
           style={{
             width: isMobile && isPortrait ? '100%' : `${leftPanelWidth}%`,
-            height: !isMobile ? '100vh' : (isMobile && isPortrait ? '50%' : '100vh'),
+            height: !isMobile ? '100dvh' : (isMobile && isPortrait ? '50%' : '100dvh'), // Use 100dvh for mobile viewport correctness
             padding: '16px',
             paddingRight: 0,
             backgroundColor: 'white',
@@ -1261,7 +1268,7 @@ ${textToExplain}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '20px', flexShrink: 0 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1f2937' }}>Load from URL</h3>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                  <input type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="Enter URL to text file..." disabled={isLoading} style={{ flex: 1, padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadTextFromURL(); } }} />
+                  <input type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="Enter URL to text file..." disabled={isLoading} style={{ flex: 1, padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '16px', backgroundColor: 'white' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadTextFromURL(); } }} />
                   <button onClick={loadTextFromURL} disabled={isLoading || !urlInput.trim()} style={{ padding: '12px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', opacity: (isLoading || !urlInput.trim()) ? 0.5 : 1 }}>Load</button>
                 </div>
                 <div style={{ padding: '10px 12px', backgroundColor: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: '4px', marginBottom: '8px' }}>
@@ -1411,7 +1418,7 @@ ${textToExplain}
         <div className="panel-divider" onMouseDown={handleDividerStart} onTouchStart={handleDividerStart} style={{ display: isMobile && isPortrait ? 'none' : 'block', width: '8px', minWidth: '8px', maxWidth: '8px', flex: 'none', height: '100vh', backgroundColor: '#e5e7eb', cursor: 'col-resize', zIndex: 1000, pointerEvents: 'auto', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', position: 'relative', right: 0, top: 0 }} onMouseOver={(e) => { e.target.style.backgroundColor = '#d1d5db'; }} onMouseOut={(e) => { e.target.style.backgroundColor = '#e5e7eb'; }}>
           <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '2px', height: '40px', backgroundImage: `linear-gradient(to bottom, transparent 0px, #9ca3af 2px, #9ca3af 4px, transparent 6px, transparent 8px, #9ca3af 10px, #9ca3af 12px, transparent 14px, transparent 16px, #9ca3af 18px, #9ca3af 20px, transparent 22px, transparent 24px, #9ca3af 26px, #9ca3af 28px, transparent 30px, transparent 32px, #9ca3af 34px, #9ca3af 36px, transparent 38px)`, backgroundSize: '2px 4px', pointerEvents: 'none' }} />
         </div>
-        <div className="right-panel" style={{ flex: 1, height: !isMobile ? '100vh' : (isMobile && isPortrait ? '50%' : '100vh'), overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+        <div className="right-panel" style={{ flex: 1, height: !isMobile ? '100dvh' : (isMobile && isPortrait ? '50%' : '100dvh'), overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
           <div
             ref={headerRef}
             style={{ width: '100%', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}
