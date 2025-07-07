@@ -13,11 +13,14 @@ const client = new OAuth2Client(
 );
 
 export default async function handler(req, res) {
-  const { code } = req.query;
+  const { code, state } = req.query;
   // Print the redirect URI being used
   const redirectUri = `${baseUrl}/api/auth/callback/google`;
   console.log('Google OAuth redirect URI:', redirectUri);
+  console.log('OAuth state:', state);
+  
   if (!code) {
+    console.error('Missing authorization code in callback');
     return res.status(400).send('Missing code parameter');
   }
 
@@ -29,15 +32,25 @@ export default async function handler(req, res) {
 
     let tokens;
     try {
+      // Set the redirect URI explicitly before token exchange
+      client.redirectUri = redirectUri;
       const tokenResponse = await client.getToken(code);
       tokens = tokenResponse.tokens;
+      console.log('Token exchange successful, tokens received:', Object.keys(tokens));
+      
       if (!tokens || !tokens.id_token) {
-        console.error('Google token exchange failed:', tokenResponse);
-        return res.status(500).send('Google token exchange failed.');
+        console.error('Google token exchange failed - no ID token:', tokenResponse);
+        return res.status(500).send('Google token exchange failed - no ID token received.');
       }
     } catch (err) {
-      console.error('Google getToken error:', err.response?.data || err.message || err);
-      return res.status(500).send('Google token exchange failed.');
+      console.error('Google getToken error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        redirectUri: redirectUri,
+        code: code ? 'present' : 'missing'
+      });
+      return res.status(500).send(`Google token exchange failed: ${err.message}`);
     }
 
     client.setCredentials(tokens);

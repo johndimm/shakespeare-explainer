@@ -10,7 +10,16 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   // Redirect to Google OAuth
   const handleGoogleRedirect = () => {
     console.log('🔄 Redirecting to Google OAuth...');
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:${window.location.port || '3000'}`;
+    
+    // More reliable base URL construction for mobile
+    let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const port = window.location.port;
+      baseUrl = `${protocol}//${hostname}${port && port !== '80' && port !== '443' ? ':' + port : ''}`;
+    }
+    
     const redirectUri = `${baseUrl}/api/auth/callback/google`;
     console.log('Using redirect URI:', redirectUri);
     
@@ -21,8 +30,22 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       scope: 'openid email profile',
       access_type: 'offline',
       prompt: 'consent',
+      // Add mobile-specific parameters
+      include_granted_scopes: 'true',
+      state: `mobile=${/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)}`
     });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    console.log('Full auth URL:', authUrl);
+    
+    // Handle mobile Chrome restrictions
+    try {
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Mobile OAuth redirect error:', error);
+      // Fallback: try opening in same tab
+      window.open(authUrl, '_self');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -72,10 +95,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         backgroundColor: 'white',
         borderRadius: '8px',
         padding: '32px',
-        maxWidth: '400px',
+        maxWidth: '100vw',
+        maxHeight: '100dvh',
         width: '100%',
-        margin: '0 16px',
-        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+        height: '100%',
+        overflowY: 'auto',
+        margin: '0 8px',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+        overscrollBehavior: 'contain',
       }}>
         <div style={{
           display: 'flex',
