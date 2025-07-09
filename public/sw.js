@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shakespeare-explainer-v5';
+const CACHE_NAME = 'shakespeare-explainer-v6';
 const urlsToCache = [
   '/',
   '/app-manifest.json'

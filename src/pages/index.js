@@ -9,11 +9,17 @@ export default function RedirectPage() {
     // Fade in animation
     setIsVisible(true);
     
+    // Immediate redirect for better UX
+    const immediateRedirect = setTimeout(() => {
+      window.location.href = 'https://the-explainer.vercel.app';
+    }, 5000);
+    
     // Countdown timer
     const countdownTimer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(countdownTimer);
+          clearTimeout(immediateRedirect);
           window.location.href = 'https://the-explainer.vercel.app';
           return 0;
         }
@@ -21,7 +27,10 @@ export default function RedirectPage() {
       });
     }, 1000);
 
-    return () => clearInterval(countdownTimer);
+    return () => {
+      clearInterval(countdownTimer);
+      clearTimeout(immediateRedirect);
+    };
   }, []);
 
   return (
@@ -30,6 +39,9 @@ export default function RedirectPage() {
         <title>Shakespeare Explainer - Moved</title>
         <meta name="description" content="Shakespeare Explainer has moved to a new location" />
         <meta httpEquiv="refresh" content="5;url=https://the-explainer.vercel.app" />
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
       </Head>
       
       {/* Animated background elements */}
